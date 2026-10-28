@@ -1,0 +1,21 @@
+name = "gone-done"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# Статика: веб-версия игры (папка public/ создаётся скриптом scripts/build_web.py)
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Комнаты: один Durable Object на комнату
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+[vars]
+# Минимум игроков для старта. 1 — можно показать игру в одиночку; для честной игры поставьте 2.
+MIN_PLAYERS = "1"
