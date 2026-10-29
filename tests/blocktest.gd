@@ -92,6 +92,7 @@ func _ready() -> void:
 	# --- Coin: подбор, погоня, награда на финише, потеря при смерти
 	c = _char(Vector2(400, 185))
 	var coin: Coin = _block("coin", Vector2(400, 185))
+	coin.is_active = true
 	await _frames(5)
 	check(coin.carrier == c, "монета подобрана")
 	c.position.x = 440.0
@@ -103,6 +104,7 @@ func _ready() -> void:
 	c.queue_free(); coin.queue_free(); await _frames(2)
 	c = _char(Vector2(300, 185))
 	coin = _block("coin", Vector2(300, 185))
+	coin.is_active = true
 	await _frames(5)
 	c.kill_character("spikes")
 	await _frames(3)

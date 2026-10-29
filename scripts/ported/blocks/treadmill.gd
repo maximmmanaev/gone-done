@@ -1,4 +1,4 @@
-# Ported from structur/Treadmill.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из structur/Treadmill.cs + логика, написанная вручную (в Il2Cpp-дампе тел методов нет). Конвертер этот файл не трогает.
 class_name Treadmill
 extends MultipieceBlock
 
@@ -15,8 +15,6 @@ var collider_positions: Array
 var collider_angles: Array
 var parts_rb: Array
 
-func _enter_tree() -> void:  # C# Awake
-	pass
 
 func recalculate_collider_positions() -> void:  # C# RecalculateColliderPositions
 	pass
@@ -24,35 +22,19 @@ func recalculate_collider_positions() -> void:  # C# RecalculateColliderPosition
 func activate_sound() -> void:  # C# activateSound
 	pass
 
-func activate_0() -> void:  # C# Activate
-	pass
 
 func act(delta_time: float) -> void:  # C# Act
-	pass
+	for c: Character in zone_characters:
+		if is_instance_valid(c):
+			c.character_inherited_motion = belt_dir * belt_speed
 
-func enable_placement(show_guides: bool) -> void:  # C# EnablePlacement
-	pass
 
-func enable_0() -> void:  # C# Enable
-	pass
 
-func disable_0() -> void:  # C# Disable
-	pass
 
-func pause_0() -> void:  # C# Pause
-	pass
 
-func unpause_0() -> void:  # C# Unpause
-	pass
 
-func can_place() -> bool:  # C# CanPlace
-	return false
 
-func get_physics_modifier() -> Array:  # C# GetPhysicsModifier
-	return []
 
-func get_physics_modifiers() -> Array:  # C# GetPhysicsModifiers
-	return []
 
 func reset_part_positions() -> void:  # C# ResetPartPositions
 	pass
@@ -62,3 +44,14 @@ func update_part_positions() -> void:  # C# UpdatePartPositions
 
 func set_part_transform(t: float, treadmill_base_rotation: float, part_rb: RigidBody2D) -> void:  # C# SetPartTransform
 	pass
+
+var belt_dir := Vector2.RIGHT
+var belt_speed := 60.0
+
+
+func on_character_entered(_c: Character) -> void:
+	pass
+
+
+func on_character_exited(c: Character) -> void:
+	c.character_inherited_motion = Vector2.ZERO

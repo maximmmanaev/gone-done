@@ -32,7 +32,11 @@ func _process(delta: float) -> void:  # C# Update
 		carrier = null
 		return
 	if carrier.dying or carrier.dead:
-		drop(carrier.global_position, true)
+		if return_on_death:
+			drop(carrier.global_position, true)
+		else:
+			carrier = null
+			visible = false
 	elif carrier.success:
 		do_award_animation()
 	else:
@@ -62,6 +66,7 @@ func pickup(chr: Character) -> void:  # C# Pickup
 	at_spawn_point = false
 	coin_moving = true
 	pickup_requester = chr
+	coin_picked.emit(chr)
 
 
 func return_coin_to_spawn():  # C# returnCoinToSpawn (coroutine)
@@ -85,5 +90,17 @@ func enable_placed() -> void:  # C# EnablePlaced
 	pass
 
 func on_character_entered(c: Character) -> void:
-	if carrier == null and not awarded and not c.dead and not c.dying:
+	if is_active and carrier == null and not awarded and not c.dead and not c.dying and not c.is_ghost:
 		pickup(c)
+
+signal coin_picked(chr: Character)
+
+var return_on_death := true     # false: потерянная монета пропадает до следующего раунда (так считает сервер)
+
+
+func reset_play_state() -> void:
+	carrier = null
+	awarded = false
+	coin_moving = false
+	visible = true
+	return_coin_to_spawn()

@@ -17,7 +17,7 @@ func _physics_process(delta: float) -> void:  # C# FixedUpdate
 	if not is_live():
 		return
 	for c: Character in zone_characters:
-		if is_instance_valid(c) and not c.dead and not c.dying and clock - last_pushed.get(c, -INF) >= PUSH_DELAY:
+		if is_instance_valid(c) and not c.dead and not c.dying and not c.is_ghost and clock - last_pushed.get(c, -INF) >= PUSH_DELAY:
 			last_pushed[c] = clock
 			c.bounce(strength, direction.normalized())
 

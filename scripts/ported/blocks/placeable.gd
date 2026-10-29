@@ -446,3 +446,10 @@ func on_character_exited(c: Character) -> void:
 ## Вернуть блок в исходное состояние перед новым забегом (переопределяют движущиеся блоки).
 func reset_play_state() -> void:
 	pass
+
+## Общие часы забега: game.gd выставляет sync_clock (часы сервера), чтобы у всех игроков стрелы, огонь и качание совпадали.
+var sync_clock := -1.0
+
+
+func play_clock() -> float:
+	return sync_clock if sync_clock >= 0.0 else clock

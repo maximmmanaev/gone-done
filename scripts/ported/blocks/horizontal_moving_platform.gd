@@ -17,12 +17,16 @@ var line_position: Vector3
 var rb: RigidBody2D
 
 func _ready() -> void:  # C# Start
-	start_origin = position
-	last_position = position
-	setup_zone(platform_size, Vector2(0, -platform_size.y))
+	var t := move_target if move_target else self
+	start_origin = t.position - Vector2.RIGHT.rotated(deg_to_rad(0.0)) * initial_moved
+	amount_moved = initial_moved
+	last_position = t.position
+	if move_target == null:
+		setup_zone(platform_size, Vector2(0, -platform_size.y))
 
 
 func act(delta_time: float) -> void:  # C# Act
+	var t := move_target if move_target else self
 	var dir := Vector2.RIGHT.rotated(deg_to_rad(0.0))
 	amount_moved += move_speed * delta_time * _sign
 	if amount_moved >= max_distance:
@@ -31,11 +35,11 @@ func act(delta_time: float) -> void:  # C# Act
 	elif amount_moved <= 0.0:
 		amount_moved = 0.0
 		_sign = 1.0
-	var prev := position
-	position = start_origin + dir * amount_moved
+	var prev := t.position
+	t.position = start_origin + dir * amount_moved
 	last_velocity = velocity
-	velocity = (position - prev) / delta_time
-	last_position = position
+	velocity = (t.position - prev) / delta_time
+	last_position = t.position
 
 
 
@@ -52,9 +56,10 @@ var _sign := 1.0
 
 func _physics_process(delta: float) -> void:
 	super(delta)
-	for c: Character in zone_characters:
-		if is_instance_valid(c):
-			c.character_inherited_motion = velocity
+	if move_target == null:
+		for c: Character in zone_characters:
+			if is_instance_valid(c):
+				c.character_inherited_motion = velocity
 
 
 func on_character_entered(_c: Character) -> void:
@@ -63,3 +68,14 @@ func on_character_entered(_c: Character) -> void:
 
 func on_character_exited(c: Character) -> void:
 	c.character_inherited_motion = Vector2.ZERO
+
+var move_target: Node2D = null     # если задан, двигается он (например, AnimatableBody2D), а не сам блок
+var initial_moved := 0.0           # с какого расстояния от края пути начинать (середина — max_distance / 2)
+
+
+func reset_play_state() -> void:
+	var t := move_target if move_target else self
+	amount_moved = initial_moved
+	_sign = 1.0
+	t.position = start_origin + Vector2.RIGHT.rotated(deg_to_rad(0.0)) * amount_moved
+	velocity = Vector2.ZERO

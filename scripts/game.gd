@@ -28,10 +28,7 @@ var goal_area: Area2D                 # флаг текущей карты
 var level_map := 0                    # индекс построенной карты
 var coin_nodes: Dictionary = {}      # uid -> Area2D монеты (прячутся, когда подобраны)
 var my_coins := 0                    # сколько монет подобрано в этом забеге
-var movers: Array = []               # [{node, base, ph}]
-var spinners: Array = []
 var block_defs: Dictionary = {}      # uid -> {owner, type, origin, rot}: что сейчас стоит на уровне (после взрывов — без снесённого)
-var traps: Array = []                # арбалеты, огнемёты, маятники
 var my_state := "idle"               # idle / alive / dead / finished
 var run_clock := 0.0
 var send_timer := 0.0
@@ -114,6 +111,7 @@ func _build_level() -> void:
 	player.visible = false
 	add_child(player)
 	player.died.connect(_on_player_died)
+	player.succeeded.connect(_on_player_succeeded)
 
 	grid = GridOverlay.new()
 	add_child(grid)
@@ -221,13 +219,14 @@ func _make_visual(type: String, color: Color, style := "block") -> Node2D:
 		return Art.make_bomb(type, px, color)
 	if kind == "coin":
 		return Art.make_coin(px, color)
-	if Catalog.PORTED_KINDS.has(kind):
-		return Art.make_ported(type, px, color)
+
 	if kind == "shooter" or kind == "flame" or kind == "pendulum":
 		var info: Dictionary = Catalog.BLOCKS[type]
 		var arm: float = float(info.get("arm", 0.0)) * CELL if style != "icon" else 0.0
 		var reach: float = float(info.get("range", 0)) * CELL if style == "ghost" else 0.0
 		return Art.make_trap(type, px, color, arm, reach)
+	if Catalog.PORTED_ART.has(kind):
+		return Art.make_ported(type, px, color)
 	return Art.make_hazard(type, px, color)    # шипы, шестерёнка и пружина
 
 
@@ -252,14 +251,6 @@ func _spawn_block(uid: int, owner_id: int, type: String, origin: Vector2i, rot :
 		node = body
 	elif Catalog.PORTED_KINDS.has(kind):
 		node = _spawn_ported(uid, type, kind, rect, rot, color)
-	elif kind == "mover":
-		var body := AnimatableBody2D.new()
-		body.sync_to_physics = true
-		_fill_body(body, rect, color, type, 0, rot)
-		node = body
-		# горизонтальный листок ездит влево-вправо, повёрнутый — вверх-вниз (как лифт)
-		movers.append({"node": body, "base": body.position, "ph": float(uid) * 1.3,
-			"axis": Vector2.RIGHT if rot % 2 == 0 else Vector2.DOWN})
 	else:
 		var area := Area2D.new()
 		area.collision_layer = 0
@@ -273,13 +264,7 @@ func _spawn_block(uid: int, owner_id: int, type: String, origin: Vector2i, rot :
 		area.add_child(shape)
 		var vis := _make_visual(type, color)
 		area.add_child(_rotated(vis, rot))
-		if type == "saw":
-			spinners.append(vis)
-		if kind == "shooter" or kind == "flame" or kind == "pendulum":
-			_register_trap(uid, type, area, vis, Vector2(size) * CELL, rot)
 		area.body_entered.connect(_on_block_touched.bind(uid, kind, rot))
-		if kind == "coin":
-			coin_nodes[uid] = area
 		node = area
 	node.set_meta("owner", owner_id)
 	node.set_meta("rect", Rect2(Vector2(origin) * CELL, Vector2(size) * CELL))
@@ -299,7 +284,9 @@ func _spawn_block(uid: int, owner_id: int, type: String, origin: Vector2i, rot :
 func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int, color: Color) -> Node2D:
 	var size := Vector2(rect.size) * CELL
 	var center := Vector2(rect.position) * CELL + size / 2.0
-	var logic: Placeable
+	var info: Dictionary = Catalog.BLOCKS[type]
+	var dir := Catalog.facing_of(rot)
+	var logic: Node
 	var node: Node2D
 	match kind:
 		"ice", "honey":    # твёрдая платформа с особой поверхностью: зона над верхней гранью меняет трение, бег и прыжок
@@ -309,13 +296,89 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			body.add_child(logic)
 			logic.setup_zone(Vector2(size.x, 6), Vector2(0, -size.y / 2.0 - 3.0))
 			node = body
+		"treadmill":        # платформа-конвейер: несёт того, кто стоит или прижат к ней
+			var body := StaticBody2D.new()
+			_fill_body(body, rect, color, type, 0, rot)
+			var belt := Treadmill.new()
+			belt.belt_dir = Vector2.RIGHT.rotated(rot * PI / 2.0)
+			body.add_child(belt)
+			belt.setup_zone(size + Vector2(10, 10))
+			logic = belt
+			node = body
+		"mover":            # листок: ездит влево-вправо, повёрнутый — вверх-вниз; физика сама возит игрока
+			var body := AnimatableBody2D.new()
+			body.sync_to_physics = true
+			_fill_body(body, rect, color, type, 0, rot)
+			var plat: ActiveBlock = HorizontalMovingPlatform.new() if rot % 2 == 0 else MovingPlatform.new()
+			plat.move_speed = 50.0
+			plat.max_distance = CELL * 6.0
+			plat.initial_moved = CELL * 3.0
+			plat.move_target = body
+			if rot % 2 == 1:
+				plat.move_angle = 90.0
+			body.add_child(plat)
+			logic = plat
+			node = body
 		"toxic":
 			node = Node2D.new()
 			node.position = center
 			node.add_child(_rotated(_make_visual(type, color), rot))
-			logic = ToxicWaste.new()
-			node.add_child(logic)
-			logic.setup_zone(size)
+			var toxic := ToxicWaste.new()
+			node.add_child(toxic)
+			toxic.setup_zone(size)
+			logic = toxic
+		"spring":
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_rotated(_make_visual(type, color), rot))
+			var spring := Spring.new()
+			spring.direction = dir
+			node.add_child(spring)
+			spring.setup_zone(size)
+			logic = spring
+		"coin":
+			node = Node2D.new()
+			node.position = center
+			var coin := Coin.new()
+			coin.return_on_death = false
+			coin.add_child(_make_visual(type, color))
+			coin.coin_picked.connect(_on_coin_picked.bind(uid))
+			node.add_child(coin)
+			coin_nodes[uid] = node
+			logic = coin
+		"goal":             # блок «Флаг»: дотронулся — финиш
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_rotated(_make_visual(type, color), rot))
+			var goal := GoalBlock.new()
+			node.add_child(goal)
+			goal.setup_zone(size)
+			logic = goal
+		"sawspin":          # шестерёнка: вращается и убивает
+			node = Node2D.new()
+			node.position = center
+			var saw := SawSpin.new()
+			saw.spin_speed = 6.0
+			saw.kill_radius = minf(size.x, size.y) / 2.0 - 2.0
+			saw.add_child(_make_visual(type, color))
+			node.add_child(saw)
+			logic = saw
+		"sawslide":         # пила-бегунок: крутится и ездит туда-обратно вдоль блока
+			node = Node2D.new()
+			node.position = center
+			node.rotation = (rot % 2) * PI / 2.0
+			var length := maxf(size.x, size.y)
+			var rail: Art.PortedDraw = Art.make_ported("sawrail", Vector2(length, CELL), color)
+			rail.show_blade = false
+			node.add_child(rail)
+			var slider := SawSpinAndMove.new()
+			slider.move_speed = 40.0
+			slider.max_left = (length - CELL) / 2.0
+			slider.max_right = (length - CELL) / 2.0
+			slider.kill_radius = CELL / 2.0 - 1.0
+			slider.add_child(Art.make_ported("sawblade", Vector2(CELL, CELL), color))
+			node.add_child(slider)
+			logic = slider
 		"sawrail":
 			node = Node2D.new()
 			node.position = center
@@ -323,42 +386,114 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			rail.show_blade = false
 			node.add_child(_rotated(rail, rot))
 			var saw := LinearSaw.new()
-			var dir := Vector2.RIGHT if rot % 2 == 0 else Vector2.DOWN
+			var sdir := Vector2.RIGHT if rot % 2 == 0 else Vector2.DOWN
 			var length := maxf(size.x, size.y)
-			saw.travel_dir = dir
+			saw.travel_dir = sdir
 			saw.travel_distance = length - CELL
 			saw.blade_size = Vector2(CELL - 4, CELL - 4)
-			saw.position = -dir * (length - CELL) / 2.0
+			saw.position = -sdir * (length - CELL) / 2.0
 			saw.add_child(Art.make_ported("sawblade", Vector2(CELL, CELL), color))
 			node.add_child(saw)
 			logic = saw
-		"axe":
+		"pendulum":         # маятник = топор: качается по общим часам забега
 			node = Node2D.new()
 			node.position = center
-			node.rotation = rot * PI / 2.0
+			node.rotation = dir.angle() - PI / 2.0
 			var pivot := Node2D.new()
-			pivot.add_child(Art.make_ported("axearm", Vector2(CELL, CELL * 2.5), color))
+			var arm_px: float = float(info.arm) * CELL
+			pivot.add_child(Art.make_ported("axearm", Vector2(CELL, arm_px), color))
 			node.add_child(pivot)
-			node.add_child(_make_visual(type, color))
+			node.add_child(Art.make_trap(type, size, color, 0.0, 0.0))
 			var axe := SwingingAxe.new()
 			axe.rotate_locked = pivot
-			axe.axe_length = CELL * 2.5
+			axe.axe_length = arm_px
+			axe.axe_head_size = Vector2(13, 13)
+			axe.amplitude = deg_to_rad(float(info.swing))
+			axe.saw_move_speed = float(info.freq)
+			axe.swing_phase = float(uid) * 0.7
 			node.add_child(axe)
 			logic = axe
+		"shooter":          # арбалет
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_rotated(_make_visual(type, color), rot))
+			var launcher := ProjectileLauncher.new()
+			launcher.shoot_dir = dir
+			launcher.first_shot_delay = float(info.first)
+			launcher.interval = float(info.period)
+			launcher.muzzle_offset = (size.y / 2.0 if dir.x == 0.0 else size.x / 2.0) + 4.0
+			node.add_child(launcher)
+			logic = launcher
+		"flame":            # огнемёт
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_rotated(_make_visual(type, color), rot))
+			var lighter := Lighter.new()
+			var half: float = size.y / 2.0 if dir.x == 0.0 else size.x / 2.0
+			var reach: float = float(info.range) * CELL
+			var flame := Art.make_flame(reach)
+			flame.position = dir * half
+			flame.rotation = dir.angle() + PI / 2.0
+			flame.visible = false
+			lighter.add_child(flame)
+			lighter.flame_node = flame
+			lighter.on_time = float(info.on)
+			lighter.interval = float(info.period)
+			lighter.phase = float(uid) * 0.7
+			node.add_child(lighter)
+			var zone_size := Vector2(CELL + 8.0, reach) if dir.x == 0.0 else Vector2(reach, CELL + 8.0)
+			lighter.setup_zone(zone_size, dir * (half + reach / 2.0))
+			logic = lighter
+		"teleporter":
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_make_visual(type, color))
+			var tp := Teleporter.new()
+			node.add_child(tp)
+			logic = tp
+		"upblower":         # вентилятор: поток в сторону поворота
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_rotated(_make_visual(type, color), rot))
+			var blower := UpBlower.new()
+			blower.blow_dir = dir
+			node.add_child(blower)
+			var zs := Vector2(CELL * 2.0, CELL * 5.0) if dir.x == 0.0 else Vector2(CELL * 5.0, CELL * 2.0)
+			blower.setup_zone(zs, dir * (CELL / 2.0 + CELL * 2.5))
+			logic = blower
+		"boulder":          # валун: срывается, когда игрок оказывается впереди, и катится
+			node = Node2D.new()
+			node.position = center
+			var rock := Boulder.new()
+			rock.roll_dir = Vector2.RIGHT.rotated(rot * PI / 2.0)
+			rock.add_child(_make_visual(type, color))
+			node.add_child(rock)
+			rock.setup_zone(size - Vector2(4, 4))
+			logic = rock
+		"blackhole":
+			node = Node2D.new()
+			node.position = center
+			var hole := Blackhole.new()
+			hole.add_child(_make_visual(type, color))
+			node.add_child(hole)
+			hole.pull_radius = CELL * 3.5
+			hole.setup_zone(Vector2.ONE * hole.pull_radius * 2.0)
+			logic = hole
 		"wind":
 			node = Node2D.new()
 			node.position = center
 			node.add_child(_make_visual(type, color))
 			var wind := WindArea.new()
 			wind.area_size = size
-			wind.blow_direction = Catalog.facing_of(rot)
+			wind.blow_direction = dir
 			wind.pause_wind = phase != Catalog.Phase.RUN
 			node.add_child(wind)
 			wind.set_meta("uid", uid)
 			ported.append(wind)
 			return node
 	logic.set_meta("uid", uid)
-	logic.original_position = logic.position
+	if logic is Placeable:
+		logic.original_position = logic.position
 	ported.append(logic)
 	return node
 
@@ -366,8 +501,13 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 ## Включает или выключает блоки из ported: в забеге пилы, топоры и яд работают, ветер дует; в остальное время стоят.
 func _set_ported_active(on: bool) -> void:
 	ported = ported.filter(func(p): return is_instance_valid(p))
+	if on:
+		Teleporter.pair_all()
 	for p in ported:
-		if p is WindArea:
+		if p is SawSpin or p is SawSpinAndMove:
+			p.reset_play_state()
+			p.spin_active = on
+		elif p is WindArea:
 			p.pause_wind = not on
 			if not on:
 				for c: Character in p.affected_characters:
@@ -375,6 +515,7 @@ func _set_ported_active(on: bool) -> void:
 					c.wind_y = 0.0
 		else:
 			p.reset_play_state()
+			p.sync_clock = -1.0
 			if p is ActiveBlock:
 				p.is_active = on
 				p.paused = false
@@ -413,8 +554,6 @@ func _destroy_block(uid: int) -> void:
 	block_nodes.erase(uid)
 	coin_nodes.erase(uid)
 	block_defs.erase(uid)
-	movers = movers.filter(func(m): return m.node != node)
-	traps = traps.filter(func(x): return x.uid != uid)
 	if is_instance_valid(node):
 		node.queue_free()    # вместе с блоком исчезают его стрелы и пламя
 
@@ -438,119 +577,14 @@ func _flash() -> void:
 	tw.tween_callback(f.queue_free)
 
 
-# ======================================================================
-#  Ловушки: арбалет стреляет стрелами, огнемёт жжёт по расписанию, маятник качает шар.
-#  Всё считается по часам забега (как листок), поэтому у всех игроков картина одинаковая;
-#  смерть своего игрока каждый клиент определяет сам и сообщает серверу uid ловушки (очки хозяину).
-# ======================================================================
-
-func _register_trap(uid: int, type: String, node: Node2D, vis: Node2D, px: Vector2, rot: int) -> void:
-	var info: Dictionary = Catalog.BLOCKS[type]
-	var dir := Catalog.facing_of(rot)
-	var half: float = px.y / 2.0 if dir.x == 0.0 else px.x / 2.0     # от центра до передней грани
-	var t := {"uid": uid, "type": type, "kind": info.kind, "node": node, "vis": vis, "dir": dir, "half": half,
-		"next_shot": 0.0, "phase": float(uid) * 0.7, "flame": null}
-	if info.kind == "flame":
-		var flame := Art.make_flame(float(info.range) * CELL)
-		flame.position = dir * half
-		flame.rotation = dir.angle() + PI / 2.0
-		flame.visible = false
-		node.add_child(flame)
-		t.flame = flame
-	traps.append(t)
-
-
-func _reset_traps() -> void:
-	for t in traps:
-		t.next_shot = float(Catalog.BLOCKS[t.type].get("first", 0.0))
-		for child in t.node.get_children():
-			if child.has_meta("arrow"):
-				child.queue_free()
-		if t.flame != null:
-			t.flame.visible = false
-		if t.kind == "pendulum":
-			t.vis.rod_angle = 0.0
-			t.vis.queue_redraw()
-
-
-func _tick_traps(delta: float) -> void:
-	var body := Rect2(player.global_position - Catalog.PLAYER_SIZE / 2.0, Catalog.PLAYER_SIZE)
-	var alive := my_state == "alive"
-	for t in traps.duplicate():
-		if not is_instance_valid(t.node):
-			continue
-		var info: Dictionary = Catalog.BLOCKS[t.type]
-		match t.kind:
-			"shooter":
-				if run_clock >= t.next_shot:
-					t.next_shot += float(info.period)
-					_shoot(t)
-				for child in t.node.get_children():
-					if child.has_meta("arrow"):
-						_move_arrow(child, t, delta)
-			"flame":
-				var on := fmod(run_clock + t.phase, float(info.period)) < float(info.on)
-				t.flame.visible = on
-				if on and alive:
-					var start: Vector2 = t.node.position + t.dir * t.half
-					var rect := Rect2(start, Vector2.ZERO).expand(start + t.dir * float(info.range) * CELL)
-					rect = rect.grow_individual(12.0, 0.0, 12.0, 0.0) if t.dir.x == 0.0 else rect.grow_individual(0.0, 12.0, 0.0, 12.0)
-					if rect.intersects(body):
-						_die(t.uid)
-			"pendulum":
-				var angle := sin(run_clock * float(info.freq) + t.phase) * deg_to_rad(float(info.swing))
-				t.vis.rod_angle = angle
-				t.vis.queue_redraw()
-				if alive:
-					var ball: Vector2 = t.node.position + t.dir.rotated(angle) * float(info.arm) * CELL
-					var nearest := Vector2(clampf(ball.x, body.position.x, body.end.x), clampf(ball.y, body.position.y, body.end.y))
-					if nearest.distance_to(ball) <= 6.5:
-						_die(t.uid)
-
-
-func _shoot(t: Dictionary) -> void:
-	var arrow := Area2D.new()
-	arrow.collision_layer = 0
-	arrow.collision_mask = 3    # мир (1) и игрок (2)
-	arrow.set_meta("arrow", true)
-	arrow.position = t.dir * (t.half + 4.0)
-	arrow.rotation = t.dir.angle() + PI / 2.0
-	var shape := CollisionShape2D.new()
-	var rs := RectangleShape2D.new()
-	rs.size = Vector2(3, 11)
-	shape.shape = rs
-	arrow.add_child(shape)
-	var arrow_vis := Art.make_arrow()
-	arrow_vis.scale = Vector2.ONE * Catalog.K
-	arrow.add_child(arrow_vis)
-	arrow.body_entered.connect(_on_arrow_hit.bind(arrow, t.uid))
-	t.node.add_child(arrow)
-
-
-func _move_arrow(arrow: Area2D, t: Dictionary, delta: float) -> void:
-	arrow.position += t.dir * float(Catalog.BLOCKS[t.type].speed) * delta
-	var world: Vector2 = t.node.position + arrow.position
-	if world.x < -100.0 or world.x > Catalog.GRID_W * CELL + 100.0 or world.y < -200.0 or world.y > Catalog.GRID_H * CELL + 100.0:
-		arrow.queue_free()
-
-
-func _on_arrow_hit(body: Node, arrow: Area2D, uid: int) -> void:
-	if not is_instance_valid(arrow):
-		return
-	if body == player:
-		if phase == Catalog.Phase.RUN and my_state == "alive":
-			_die(uid)
-		arrow.queue_free()
-	elif body is PhysicsBody2D:
-		arrow.queue_free()    # воткнулась в крышу или блок
-
-
 func _clear_blocks() -> void:
 	for p in ported:
 		if is_instance_valid(p) and p is Placeable:
 			p.disable_0()      # узел удалится только в конце кадра — до этого он не должен ни убивать, ни дуть
 		elif is_instance_valid(p) and p is WindArea:
 			p.pause_wind = true
+		elif is_instance_valid(p) and (p is SawSpin or p is SawSpinAndMove):
+			p.spin_active = false
 	for uid in block_nodes:
 		if is_instance_valid(block_nodes[uid]):
 			block_nodes[uid].queue_free()
@@ -558,9 +592,6 @@ func _clear_blocks() -> void:
 	coin_nodes.clear()
 	ported.clear()
 	block_defs.clear()
-	movers.clear()
-	spinners.clear()
-	traps.clear()
 	occupied = Catalog.static_occupied(level_map)
 
 
@@ -774,10 +805,6 @@ func on_phase(p: int, data: Dictionary) -> void:
 	grid.visible = p == Catalog.Phase.PLACE
 	_hide_panels()
 	_set_touch(false)
-	for m in movers:
-		m.node.position = m.base
-	if p != Catalog.Phase.RUN:
-		_reset_traps()
 	_set_ported_active(p == Catalog.Phase.RUN)
 	match p:
 		Catalog.Phase.PICK:
@@ -819,7 +846,6 @@ func on_phase(p: int, data: Dictionary) -> void:
 			if Net.clock_synced() and data.has("started"):
 				run_clock = clampf((Net.server_now_ms() - float(data.started)) / 1000.0, 0.0, 2.0)
 			send_timer = 0.0
-			_reset_traps()
 			_spawn_at(player, order.find(my_id))
 			player.active = true
 			player.visible = true
@@ -1074,9 +1100,17 @@ func _reset_coins() -> void:
 			c.visible = true
 
 
-func _on_coin_taken(uid: int, _player_id: int) -> void:
-	if coin_nodes.has(uid) and is_instance_valid(coin_nodes[uid]):
+func _on_coin_taken(uid: int, player_id: int) -> void:
+	# свою монету не прячем — она летит за игроком; чужую берёт сервер, у всех остальных она пропадает
+	if player_id != my_id and coin_nodes.has(uid) and is_instance_valid(coin_nodes[uid]):
 		coin_nodes[uid].visible = false
+
+
+func _on_coin_picked(_chr: Character, uid: int) -> void:
+	if phase != Catalog.Phase.RUN or my_state != "alive":
+		return
+	my_coins += 1
+	Net.send_coin(uid)
 
 
 ## Первый игрок дошёл до флага: у остальных идёт отсчёт.
@@ -1104,17 +1138,22 @@ func _on_block_touched(body: Node, uid: int, kind: String, rot: int) -> void:
 		return
 	if kind == "hazard":
 		_die(uid)
-	elif kind == "spring":
-		player.bounce(820.0 * Catalog.K, Catalog.facing_of(rot))
-	elif kind == "coin" and coin_nodes.has(uid) and coin_nodes[uid].visible:
-		coin_nodes[uid].visible = false
-		my_coins += 1
-		Net.send_coin(uid)
 
 
 func _on_goal_entered(body: Node) -> void:
-	if body != player or phase != Catalog.Phase.RUN or my_state != "alive":
+	if body == player:
+		_finish()
+
+
+## Финиш: флаг уровня или блок «Флаг» (GoalBlock) ставит персонажу success — отсюда общий путь.
+func _on_player_succeeded() -> void:
+	_finish()
+
+
+func _finish() -> void:
+	if phase != Catalog.Phase.RUN or my_state != "alive":
 		return
+	player.set_success(true)      # монета, которую несёт игрок, засчитывается
 	my_state = "finished"
 	player.active = false
 	player.visible = false
@@ -1132,16 +1171,12 @@ func _die(uid: int) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	for s in spinners:
-		if is_instance_valid(s):
-			s.rotation += delta * 6.0
 	if phase != Catalog.Phase.RUN:
 		return
 	run_clock += delta
-	for m in movers:
-		var n: AnimatableBody2D = m.node
-		n.position = m.base + m.axis * sin(run_clock * 1.6 + float(m.ph)) * CELL * 3.0
-	_tick_traps(delta)
+	for p in ported:      # общие часы забега: у всех игроков стрелы, огонь, качание и листья совпадают
+		if is_instance_valid(p) and p is Placeable:
+			p.sync_clock = run_clock
 	if my_state != "alive" and not my_ghost:
 		return
 	if player.position.y > Catalog.GRID_H * CELL + 60:

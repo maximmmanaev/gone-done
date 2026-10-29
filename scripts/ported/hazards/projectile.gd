@@ -1,12 +1,12 @@
-# Ported from structur/Projectile.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из structur/Projectile.cs + логика, написанная вручную (в Il2Cpp-дампе тел методов нет). Конвертер этот файл не трогает.
 class_name Projectile
 extends Node2D
 
 @export var direction: Vector2
 var images: Array
-@export var speed: float
+@export var speed: float = 230.0
 var kill_boundary: AABB
-@export var lifespan: float
+@export var lifespan: float = 6.0
 @export var use_gravity: bool
 @export var u_gravity_scale: float
 @export var rotate_to_angle: bool
@@ -52,8 +52,6 @@ static var player_body_mask
 static var attractor_repulsor_layer: int
 var paused: bool  # C# property
 
-func _enter_tree() -> void:  # C# Awake
-	pass
 
 func launch() -> void:  # C# Launch
 	pass
@@ -61,8 +59,6 @@ func launch() -> void:  # C# Launch
 func change_listener(adding: bool) -> void:  # C# ChangeListener
 	pass
 
-func _physics_process(delta: float) -> void:  # C# FixedUpdate
-	pass
 
 func get_z_rot_for_velocity(vel: Vector3) -> float:  # C# GetZRotForVelocity
 	return 0.0
@@ -102,3 +98,38 @@ func projectile_trigger_1(collider: CollisionShape2D) -> void:  # C# ProjectileT
 
 func modify_lifespan(percent: float) -> void:  # C# ModifyLifespan
 	pass
+
+var area: Area2D
+
+
+func _enter_tree() -> void:
+	area = Area2D.new()
+	area.collision_layer = 0
+	area.collision_mask = 3          # мир (1) и игрок (2)
+	area.monitorable = false
+	var shape := CollisionShape2D.new()
+	var rs := RectangleShape2D.new()
+	rs.size = Vector2(3, 11)
+	shape.shape = rs
+	area.add_child(shape)
+	area.body_entered.connect(_on_hit)
+	add_child(area)
+
+
+func _physics_process(delta: float) -> void:
+	position += direction * speed * delta
+	time_alive += delta
+	if time_alive >= lifespan:
+		queue_free()
+
+
+func _on_hit(body: Node) -> void:
+	if collided:
+		return
+	if body is Character:
+		body.kill_character("arrow", launched_from)
+		collided = true
+		queue_free()
+	elif body is PhysicsBody2D:
+		collided = true      # воткнулась в крышу или блок
+		queue_free()

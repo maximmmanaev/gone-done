@@ -31,11 +31,20 @@ MLAPI, I2), консольная/Steam/Twitch-обвязка, планшетно
 
 ## Подключено к игре
 
-Шесть блоков: лёд (`Ice`), мёд (`Honey`), яд (`ToxicWaste`), пила на рельсе (`LinearSaw`), топор (`SwingingAxe`), ветер (`WindArea`). Они есть в каталоге
-клиента и сервера (`catalog.gd`/`catalog.js`, `Catalog.PORTED_KINDS`), создаются в `game.gd` (`_spawn_ported`) и работают только в забеге.
-Игрок — `Player extends Character`; смерть от этих блоков идёт через `Character.died` и `last_killer`, поэтому очки получает хозяин блока.
-Тест: `tests/portedgametest.tscn`. В живую игру (`game.gd`) блоки из `ported/` пока не подключены:
-там свой каталог блоков и зеркальная логика на сервере (`catalog.js`/`room.js`).
+В `game.gd` (`_spawn_ported`) все эти блоки ведут классы из `ported/`; старый код ловушек, листков и шестерёнок удалён:
+
+| Блок в игре | Класс |
+|---|---|
+| Пружинка, Монета, Флаг | `Spring`, `Coin`, `GoalBlock` |
+| Листок (горизонтальный и лифт) | `HorizontalMovingPlatform`, `MovingPlatform` (возит физика: `move_target` — `AnimatableBody2D`) |
+| Шестерёнка, Пила-бегунок | `SawSpin`, `SawSpinAndMove` |
+| Арбалет, Огнемёт, Маятник | `ProjectileLauncher` + `Projectile`, `Lighter`, `SwingingAxe` |
+| Лёд, Мёд, Яд, Пила на рельсе, Ветер | `Ice`, `Honey`, `ToxicWaste`, `LinearSaw`, `WindArea` |
+| Телепорт, Дорожка, Вентилятор, Валун, Чёрная дыра | `Teleporter`, `Treadmill`, `UpBlower`, `Boulder`, `Blackhole` |
+
+Блоки работают только в забеге. Стрелы, огонь, маятник и листки считаются по общим часам забега (`Placeable.sync_clock`), поэтому у всех игроков
+картина совпадает. Игрок — `Player extends Character`; смерть идёт через `Character.died` и `last_killer`, поэтому очки получает хозяин блока.
+Тесты: `tests/portedgametest.tscn`, `tests/bombtest.tscn`, `tests/blocktest.tscn`.
 
 ## Правила перевода
 

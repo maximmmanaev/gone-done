@@ -13,9 +13,10 @@ func activate_sound() -> void:  # C# activateSound
 	pass
 
 func act(delta_time: float) -> void:  # C# Act
-	_t += delta_time * saw_move_speed
 	var pivot: Node2D = rotate_locked if rotate_locked else self
-	pivot.rotation = amplitude * sin(_t)
+	_t += delta_time
+	var clk := play_clock() if sync_clock >= 0.0 else _t
+	pivot.rotation = amplitude * sin(clk * saw_move_speed + swing_phase)
 	for c: Character in zone_characters:
 		if is_instance_valid(c):
 			c.kill_character(kill_type if kill_type != "" else "axe", self)
@@ -37,3 +38,5 @@ func reset_play_state() -> void:
 	_t = 0.0
 	var pivot: Node2D = rotate_locked if rotate_locked else self
 	pivot.rotation = 0.0
+
+var swing_phase := 0.0

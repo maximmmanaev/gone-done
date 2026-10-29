@@ -60,7 +60,13 @@ export const BLOCKS = {
   honey: [3, 1],
   toxic: [2, 1],
   sawrail: [4, 1],
-  axe: [1, 1],
+  teleporter: [1, 1],
+  treadmill: [4, 1],
+  upblower: [1, 1],
+  boulder: [2, 2],
+  blackhole: [3, 3],
+  goal: [1, 2],
+  sawslide: [3, 1],
   wind: [3, 3],
 };
 

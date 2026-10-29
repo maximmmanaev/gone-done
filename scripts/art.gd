@@ -654,8 +654,38 @@ class PortedDraw extends Node2D:
 			"axearm":
 				Art.stroke(self, Vector2(0, 0), Vector2(0, size.y - 8), Color(0.45, 0.35, 0.25), 3.0)
 				Art.disc(self, Vector2(0, size.y - 6), 8.0, color, 2.2)
-			"axe":
-				Art.disc(self, Vector2.ZERO, 3.0, Color(0.35, 0.35, 0.4), 1.6)
+			"teleporter":
+				Art.shape(self, Art.ellipse(Vector2.ZERO, size.x * 0.42, size.y * 0.46), Art.darker(color, 0.5), 2.4)
+				Art.shape(self, Art.ellipse(Vector2.ZERO, size.x * 0.28, size.y * 0.33), Art.lighter(color, 0.35), 1.6)
+				draw_arc(Vector2.ZERO, size.x * 0.18, angle, angle + PI * 1.4, 16, Color(1, 1, 1, 0.9), 2.0)
+			"treadmill":
+				Art.rect_shape(self, r, color)
+				for i in int(size.x / 12.0):
+					var x := r.position.x + 8.0 + i * 12.0
+					draw_polyline(PackedVector2Array([Vector2(x, -4), Vector2(x + 5, 0), Vector2(x, 4)]), Color(1, 1, 1, 0.8), 2.0)
+				Art.disc(self, Vector2(r.position.x + size.y / 2.0, 0), size.y / 2.0 - 2.0, Art.darker(color, 0.6), 1.8)
+				Art.disc(self, Vector2(r.end.x - size.y / 2.0, 0), size.y / 2.0 - 2.0, Art.darker(color, 0.6), 1.8)
+			"upblower":
+				Art.rect_shape(self, Rect2(r.position + Vector2(0, size.y * 0.55), Vector2(size.x, size.y * 0.45)), color)
+				for col in 2:
+					var x := -size.x * 0.22 + col * size.x * 0.44
+					draw_line(Vector2(x, size.y * 0.3), Vector2(x, -size.y * 0.35), Color(Color(0.8, 0.95, 1.0), 0.8), 2.2)
+					draw_colored_polygon(PackedVector2Array([Vector2(x, -size.y * 0.45), Vector2(x - 4, -size.y * 0.25), Vector2(x + 4, -size.y * 0.25)]), Color(Color(0.8, 0.95, 1.0), 0.9))
+			"boulder":
+				Art.shape(self, Art.ellipse(Vector2.ZERO, size.x * 0.46, size.y * 0.46, 0.0, 14), color, 2.8)
+				draw_line(Vector2(-size.x * 0.2, -size.y * 0.1), Vector2(size.x * 0.1, size.y * 0.15), Art.INK, 2.0)
+				draw_line(Vector2(size.x * 0.05, -size.y * 0.3), Vector2(size.x * 0.22, -size.y * 0.05), Art.INK, 2.0)
+			"blackhole":
+				for k in 4:
+					var rr := size.x * (0.48 - 0.1 * k)
+					Art.shape(self, Art.ellipse(Vector2.ZERO, rr, rr), Color(0.12 + 0.05 * k, 0.04, 0.22 + 0.06 * k, 0.9), 0.0)
+				draw_arc(Vector2.ZERO, size.x * 0.34, angle, angle + PI * 1.2, 20, Color(0.8, 0.6, 1.0, 0.8), 2.0)
+				draw_arc(Vector2.ZERO, size.x * 0.22, angle * 1.6 + 1.0, angle * 1.6 + 1.0 + PI, 16, Color(0.8, 0.6, 1.0, 0.8), 2.0)
+			"goal":
+				Art.stroke(self, Vector2(-size.x * 0.25, r.end.y - 2), Vector2(-size.x * 0.25, r.position.y + 3), Color(0.45, 0.35, 0.25), 3.0)
+				Art.shape(self, PackedVector2Array([Vector2(-size.x * 0.25, r.position.y + 3), Vector2(size.x * 0.45, r.position.y + size.y * 0.25), Vector2(-size.x * 0.25, r.position.y + size.y * 0.5)]), color, 2.2)
+			"sawslide":
+				pass
 			"wind":    # стрелки смотрят вверх: блок без поворота дует вверх
 				for col in 3:
 					var x := r.position.x + size.x * (0.2 + 0.3 * col)
@@ -671,7 +701,7 @@ class PortedDraw extends Node2D:
 			draw_line(c, c + Vector2(cos(a), sin(a)) * (rad - 2.0), Art.INK, 2.0)
 
 	func _process(delta: float) -> void:
-		if type == "sawrail" or type == "sawblade":
+		if type in ["sawrail", "sawblade", "blackhole", "teleporter"]:
 			angle += delta * 10.0
 			queue_redraw()
 

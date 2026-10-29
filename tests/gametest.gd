@@ -89,12 +89,14 @@ func _ready() -> void:
 			if nx > 34:
 				nx = 22
 	check(g.block_nodes.size() == uid, "созданы все блоки (%d)" % uid)
-	check(Catalog.BLOCKS.size() == 20, "в каталоге 20 блоков")
+	check(Catalog.BLOCKS.size() == 26, "в каталоге 26 блоков")
 	# лифт (повёрнутый листок) ездит по вертикали, обычный листок — по горизонтали
-	var axes := {}
-	for m in g.movers:
-		axes[m.axis] = true
-	check(axes.has(Vector2.RIGHT) and axes.has(Vector2.DOWN), "листок: горизонтальный и вертикальный (лифт)")
+	var horizontal := false
+	var vertical := false
+	for pl in g.ported:
+		horizontal = horizontal or pl is HorizontalMovingPlatform
+		vertical = vertical or (pl is MovingPlatform and not pl is HorizontalMovingPlatform and pl.move_angle == 90.0)
+	check(horizontal and vertical, "листок: горизонтальный и вертикальный (лифт)")
 
 	g.on_phase(Catalog.Phase.RUN, {"order": [g.my_id], "time": 45.0})
 	for i in 90:
@@ -204,9 +206,10 @@ func _ready() -> void:
 	g._spawn_block(901, 1, "coin", Vector2i(32, 3))
 	g.on_phase(Catalog.Phase.RUN, {"order": [g.my_id], "time": 0})
 	check(g.coin_nodes[900].visible and g.coin_nodes[901].visible, "монеты видны в начале забега")
-	g._on_block_touched(g.player, 900, "coin", 0)
-	g._on_block_touched(g.player, 900, "coin", 0)
-	check(not g.coin_nodes[900].visible and g.my_coins == 1, "подобрана один раз (%d)" % g.my_coins)
+	var coin: Coin = g.coin_nodes[900].get_child(0)
+	coin.on_character_entered(g.player)
+	coin.on_character_entered(g.player)
+	check(coin.carrier == g.player and g.my_coins == 1, "подобрана один раз (%d)" % g.my_coins)
 	g._on_coin_taken(901, 99)
 	check(not g.coin_nodes[901].visible and g.my_coins == 1, "чужая монета спрятана, моя не засчитана")
 	g.on_phase(Catalog.Phase.RUN, {"order": [g.my_id], "time": 0})

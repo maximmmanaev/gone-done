@@ -1,12 +1,12 @@
-# Ported from structur/Blackhole.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из structur/Blackhole.cs + логика, написанная вручную (в Il2Cpp-дампе тел методов нет). Конвертер этот файл не трогает.
 class_name Blackhole
 extends ActiveBlock
 
-@export var pull_strength: float
+@export var pull_strength: float = 5000.0
 var gravity_curve: Curve
 @export var shrink_time: float
-@export var death_distance: float
-@export var rotate_spin_speed: float
+@export var death_distance: float = 10.0
+@export var rotate_spin_speed: float = 4.0
 @export var kill_offset: Vector3
 @export var cutoff_distance_sqr: float
 @export var death_cause_name: String
@@ -19,19 +19,42 @@ var currently_sucking: Array
 var animator: AnimationPlayer
 
 func _ready() -> void:  # C# Start
-	pass
+	setup_zone(Vector2.ONE * pull_radius * 2.0)
 
-func enable_0() -> void:  # C# Enable
-	pass
 
 func _physics_process(delta: float) -> void:  # C# FixedUpdate
-	pass
+	super(delta)
+	if not is_active or paused or not is_live():
+		return
+	for c: Character in zone_characters:
+		if not is_instance_valid(c) or c.dead or c.is_ghost:
+			continue
+		var to_center := global_position - c.global_position
+		var dist := to_center.length()
+		if dist < death_distance:
+			c.kill_character(death_cause_name if death_cause_name != "" else "blackhole", self)
+			continue
+		var atten := clampf(1.0 - dist / pull_radius, 0.0, 1.0)
+		var pull := to_center / dist * pull_strength * atten
+		c.wind_x = pull.x
+		c.wind_y = pull.y
 
 func suck_in_character(chr: Character):  # C# suckInCharacter (coroutine)
-	pass
+	if not currently_sucking.has(chr):
+		currently_sucking.append(chr)
 
-func pause_0() -> void:  # C# Pause
-	pass
+var pull_radius := 56.0
 
-func unpause_0() -> void:  # C# Unpause
-	pass
+
+func on_character_entered(c: Character) -> void:
+	suck_in_character(c)
+
+
+func on_character_exited(c: Character) -> void:
+	currently_sucking.erase(c)
+	c.wind_x = 0.0
+	c.wind_y = 0.0
+
+
+func reset_play_state() -> void:
+	currently_sucking.clear()

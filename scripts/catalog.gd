@@ -68,14 +68,17 @@ const PLAYER_COLORS := [
 # и насовсем сносят постройки в зоне — это сами клетки бомбы (динамит 1×1, бомба 2×2, ядерная 3×3). Взрывом управляет сервер.
 # Ловушки-стрелки, огнемёт и маятник считает каждый клиент по часам забега (как листок); направление — куда «смотрит» блок
 # (0 — вверх, 1 — вправо, 2 — вниз, 3 — влево), убивает того, кого коснётся; очки за такую смерть получает хозяин ловушки.
-const PORTED_KINDS := ["ice", "honey", "toxic", "sawrail", "axe", "wind"]   # их логику ведут классы из scripts/ported
+# Логику всех этих блоков ведут классы из scripts/ported; PORTED_ART — те, чьи картинки рисует Art.PortedDraw (остальные — старые рисунки).
+const PORTED_KINDS := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter", "treadmill", "upblower", "boulder", "blackhole",
+	"goal", "sawslide", "sawspin", "spring", "coin", "mover", "shooter", "flame", "pendulum"]
+const PORTED_ART := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter", "treadmill", "upblower", "boulder", "blackhole", "goal", "sawslide"]
 
 const BLOCKS := {
 	"plank":  {"name": "Щепка",     "size": Vector2i(3, 1), "kind": "solid",  "color": Color(0.78, 0.59, 0.31)},
 	"box":    {"name": "Коробок",   "size": Vector2i(2, 2), "kind": "solid",  "color": Color(0.80, 0.55, 0.33)},
 	"pillar": {"name": "Карандаш",  "size": Vector2i(1, 3), "kind": "solid",  "color": Color(0.95, 0.78, 0.25)},
 	"spikes": {"name": "Чертополох","size": Vector2i(2, 1), "kind": "hazard", "color": Color(0.60, 0.25, 0.66)},
-	"saw":    {"name": "Шестерёнка","size": Vector2i(2, 2), "kind": "hazard", "color": Color(0.80, 0.45, 0.15)},
+	"saw":    {"name": "Шестерёнка","size": Vector2i(2, 2), "kind": "sawspin", "color": Color(0.80, 0.45, 0.15)},
 	"spring": {"name": "Пружинка",  "size": Vector2i(1, 1), "kind": "spring", "color": Color(0.25, 0.72, 0.68)},
 	"mover":  {"name": "Листок",    "size": Vector2i(3, 1), "kind": "mover",  "color": Color(0.52, 0.74, 0.30)},
 	"dynamite": {"name": "Динамит", "size": Vector2i(1, 1), "kind": "bomb", "color": Color(0.85, 0.22, 0.18)},
@@ -94,7 +97,13 @@ const BLOCKS := {
 	"honey":  {"name": "Мёд",       "size": Vector2i(3, 1), "kind": "honey",  "color": Color(0.96, 0.69, 0.15)},
 	"toxic":  {"name": "Яд",        "size": Vector2i(2, 1), "kind": "toxic",  "color": Color(0.45, 0.85, 0.20)},
 	"sawrail": {"name": "Пила на рельсе", "size": Vector2i(4, 1), "kind": "sawrail", "color": Color(0.72, 0.72, 0.78)},
-	"axe":    {"name": "Топор",     "size": Vector2i(1, 1), "kind": "axe",    "color": Color(0.60, 0.60, 0.66)},
+	"teleporter": {"name": "Телепорт", "size": Vector2i(1, 1), "kind": "teleporter", "color": Color(0.62, 0.38, 0.90)},
+	"treadmill": {"name": "Дорожка", "size": Vector2i(4, 1), "kind": "treadmill", "color": Color(0.45, 0.45, 0.52)},
+	"upblower": {"name": "Вентилятор", "size": Vector2i(1, 1), "kind": "upblower", "color": Color(0.60, 0.80, 0.90)},
+	"boulder": {"name": "Валун", "size": Vector2i(2, 2), "kind": "boulder", "color": Color(0.55, 0.53, 0.50)},
+	"blackhole": {"name": "Чёрная дыра", "size": Vector2i(3, 3), "kind": "blackhole", "color": Color(0.20, 0.10, 0.35)},
+	"goal":   {"name": "Флаг",      "size": Vector2i(1, 2), "kind": "goal",   "color": Color(0.85, 0.20, 0.20)},
+	"sawslide": {"name": "Пила-бегунок", "size": Vector2i(3, 1), "kind": "sawslide", "color": Color(0.72, 0.72, 0.78)},
 	"wind":   {"name": "Ветер",     "size": Vector2i(3, 3), "kind": "wind",   "color": Color(0.70, 0.88, 0.95)},
 }
 

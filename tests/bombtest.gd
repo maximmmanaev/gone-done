@@ -57,88 +57,103 @@ func _ready() -> void:
 	g.on_phase(Catalog.Phase.RUN, run)
 	check(g.my_state == "alive", "после взрывов игрок жив")
 
-	# ---- ловушки ----
+	# ---- ловушки (логика — scripts/ported: ProjectileLauncher, Lighter, SwingingAxe; время — общие часы забега) ----
 	g._on_round_finished({}, "тест", true)
 	g._spawn_block(10, 2, "crossbow", Vector2i(24, 10), 1)        # смотрит вправо
 	g._spawn_block(11, 2, "flamethrower", Vector2i(4, 27), 0)     # огонь вверх, прямо под стартом
 	g._spawn_block(12, 2, "pendulum", Vector2i(30, 6), 0)
-	check(g.traps.size() == 3, "ловушки зарегистрированы")
+	check(g.ported.size() == 3, "ловушки созданы")
 	g.on_phase(Catalog.Phase.RUN, run)
-	var cb: Dictionary = g.traps[0]
-	g.run_clock = 0.9
-	g._tick_traps(0.016)
-	check(_arrows(cb.node).is_empty(), "арбалет ещё не выстрелил (первый выстрел через 1 с)")
-	g.run_clock = 1.05
-	g._tick_traps(0.016)
-	var arrows := _arrows(cb.node)
-	check(arrows.size() == 1, "арбалет выстрелил")
-	var x0: float = arrows[0].position.x
-	g._tick_traps(0.1)
-	check(arrows[0].position.x > x0 + 20.0, "стрела летит вправо (%.0f → %.0f)" % [x0, arrows[0].position.x])
-	check(absf(arrows[0].position.y) < 0.01, "стрела летит по прямой")
-	g.run_clock = 1.05 + Catalog.BLOCKS.crossbow.period + 0.01
-	g._tick_traps(0.016)
-	check(_arrows(cb.node).size() == 2, "второй выстрел через period")
+	var cb: ProjectileLauncher = g.ported[0]
+	var fl: Lighter = g.ported[1]
+	var pd: SwingingAxe = g.ported[2]
+	for i in 3:
+		await get_tree().physics_frame
+	_clock(g, 0.9)
+	cb.act(0.016)
+	check(cb.shots.is_empty(), "арбалет ещё не выстрелил (первый выстрел через 1 с)")
+	_clock(g, 1.05)
+	cb.act(0.016)
+	check(cb.shots.size() == 1, "арбалет выстрелил")
+	var arrow: Projectile = cb.shots[0]
+	var x0 := arrow.position.x
+	var y0 := arrow.position.y
+	for i in 8:
+		await get_tree().physics_frame
+	check(arrow.position.x > x0 + 20.0, "стрела летит вправо (%.0f → %.0f)" % [x0, arrow.position.x])
+	check(absf(arrow.position.y - y0) < 0.01, "стрела летит по прямой")
+	_clock(g, 1.05 + Catalog.BLOCKS.crossbow.period + 0.01)
+	cb.act(0.016)
+	check(cb.shots.size() == 2, "второй выстрел через period")
 	# стрела, попавшая в игрока, убивает (хозяину ловушки очки даст сервер)
-	g._on_arrow_hit(g.player, _arrows(cb.node)[0], 10)
+	cb.shots[0]._on_hit(g.player)
 	check(g.my_state == "dead", "стрела убила игрока")
 	g.on_phase(Catalog.Phase.RUN, run)
-	check(_arrows(cb.node).is_empty() and g.my_state == "alive", "новый забег: стрелы убраны")
-	# стрела улетает за карту и исчезает
-	g.run_clock = 1.05
-	g._tick_traps(0.016)
-	for i in 60:
-		g._tick_traps(0.1)
+	check(cb.shots.is_empty() and g.my_state == "alive", "новый забег: стрелы убраны")
+	# стрела живёт ограниченное время и исчезает
+	_clock(g, 1.05)
+	cb.act(0.016)
+	var old_arrow: Projectile = cb.shots[0]
+	old_arrow.time_alive = 1000.0
+	await get_tree().physics_frame
 	await get_tree().process_frame
-	check(_arrows(cb.node).is_empty(), "стрела за краем карты удалена")
+	check(not is_instance_valid(old_arrow), "стрела по истечении времени удалена")
 
 	# огнемёт: огонь горит по расписанию и жжёт того, кто в струе
-	var fl: Dictionary = g.traps[1]
 	g.on_phase(Catalog.Phase.RUN, run)
-	g.run_clock = 1.5   # fmod(1.5 + 0.7*uid, 3.4) с uid=11 → вне окна огня
 	var off_clock := 0.0
 	var on_clock := 0.0
 	for c in range(0, 340):
 		var t := c / 100.0
-		var on := fmod(t + fl.phase, float(Catalog.BLOCKS.flamethrower.period)) < float(Catalog.BLOCKS.flamethrower.on)
+		var on := fmod(t + fl.phase, fl.interval) < fl.on_time
 		if on and on_clock == 0.0:
 			on_clock = t + 0.05
 		if not on and off_clock == 0.0:
 			off_clock = t + 0.05
-	g.run_clock = off_clock
-	g._tick_traps(0.016)
-	check(not fl.flame.visible and g.my_state == "alive", "огнемёт между вспышками безвреден")
-	g.run_clock = on_clock
-	g._tick_traps(0.016)
-	check(fl.flame.visible, "огнемёт горит")
+	g.run_clock = off_clock       # физика забега продолжит отсчёт от безопасного момента
+	for i in 3:
+		await get_tree().physics_frame
+	_clock(g, off_clock)
+	fl.act(0.016)
+	check(not fl.flame_node.visible and g.my_state == "alive", "огнемёт между вспышками безвреден")
+	_clock(g, on_clock)
+	fl.act(0.016)
+	check(fl.flame_node.visible, "огнемёт горит")
 	check(g.my_state == "dead", "игрок в струе огня погиб")
 
-	# маятник: шар качается и бьёт
+	# маятник: качается по часам забега и бьёт
 	g.on_phase(Catalog.Phase.RUN, run)
-	var pd: Dictionary = g.traps[2]
-	g.run_clock = 0.5
-	g._tick_traps(0.016)
-	var want: float = sin(0.5 * float(Catalog.BLOCKS.pendulum.freq) + pd.phase) * deg_to_rad(float(Catalog.BLOCKS.pendulum.swing))
-	check(absf(pd.vis.rod_angle - want) < 0.001, "угол маятника по часам забега")
+	_clock(g, 0.5)
+	pd.act(0.016)
+	var want: float = pd.amplitude * sin(0.5 * float(Catalog.BLOCKS.pendulum.freq) + pd.swing_phase)
+	check(absf(pd.rotate_locked.rotation - want) < 0.001, "угол маятника по часам забега")
 	check(g.my_state == "alive", "маятник далеко — игрок жив")
-	g.player.global_position = pd.node.position + pd.dir.rotated(pd.vis.rod_angle) * float(Catalog.BLOCKS.pendulum.arm) * Catalog.CELL
-	g._tick_traps(0.0)
+	g.player.active = false
+	g.player.global_position = pd.rotate_locked.global_transform * Vector2(0, pd.axe_length)
+	for i in 3:
+		await get_tree().physics_frame
+	pd.act(0.0)
 	check(g.my_state == "dead", "шар маятника убил игрока")
 
 	# взрыв сносит и ловушку вместе с её стрелами
 	g.on_phase(Catalog.Phase.RUN, run)
-	g.run_clock = 1.05
-	g._tick_traps(0.016)
-	check(_arrows(cb.node).size() == 1, "стрела есть")
+	_clock(g, 1.05)
+	cb.act(0.016)
+	check(cb.shots.size() == 1, "стрела есть")
 	g._on_boom(5, 99, "bomb", Rect2i(23, 9, 4, 3), [10])
-	check(g.traps.size() == 2 and not g.block_nodes.has(10), "снесённый арбалет убран из ловушек")
+	await get_tree().process_frame
+	check(not g.block_nodes.has(10) and not is_instance_valid(cb), "снесённый арбалет убран")
 
 	g._on_round_finished({}, "тест", true)
-	check(g.block_nodes.is_empty() and g.traps.is_empty() and g.block_defs.is_empty(), "после засчитанного раунда уровень пуст")
+	await get_tree().process_frame
+	check(g.block_nodes.is_empty() and g.block_defs.is_empty(), "после засчитанного раунда уровень пуст")
 
 	print("BOMBTEST: ошибок=%d" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
 
-func _arrows(node: Node) -> Array:
-	return node.get_children().filter(func(c): return c.has_meta("arrow") and not c.is_queued_for_deletion())
+func _clock(g: Node2D, t: float) -> void:
+	g.run_clock = t
+	for p in g.ported:
+		if is_instance_valid(p) and p is Placeable:
+			p.sync_clock = t

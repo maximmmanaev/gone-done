@@ -44,11 +44,14 @@ func _ready() -> void:
 
 	# каждый из шести блоков создаётся во всех четырёх поворотах без ошибок
 	var uid := 100
-	for t in Catalog.PORTED_KINDS:
-		for rot in 4:
-			uid += 1
-			g._spawn_block(uid, 7, t, Vector2i(2 + rot * 8, 20), rot)
-	check(g.ported.size() == 24, "24 блока ported создано (%d)" % g.ported.size())
+	var ported_types := 0
+	for t in Catalog.BLOCKS:
+		if Catalog.PORTED_KINDS.has(Catalog.BLOCKS[t].kind):
+			ported_types += 1
+			for rot in 4:
+				uid += 1
+				g._spawn_block(uid, 7, t, Vector2i(2 + rot * 8, 20), rot)
+	check(g.ported.size() == ported_types * 4, "все блоки ported созданы во всех поворотах (%d из %d)" % [g.ported.size(), ported_types * 4])
 	g._clear_blocks()
 	check(g.ported.is_empty(), "очистка убрала ported")
 
@@ -103,6 +106,80 @@ func _ready() -> void:
 	await _frames(25)
 	check(g.player.position.x > xs + 3.0, "ветер сдувает вправо (%.1f → %.1f)" % [xs, g.player.position.x])
 	g._clear_blocks()
+
+	# --- пружина подбрасывает в сторону поворота
+	g._spawn_block(7, 7, "spring", Vector2i(10, 8), 0)
+	_run_phase()
+	_put(Vector2(168, 136))
+	await _frames(6)
+	check(g.player.velocity.y < -200.0 or g.player.position.y < 120.0, "пружина подбросила игрока (vy=%.0f)" % g.player.velocity.y)
+	g._clear_blocks()
+	await _frames(2)
+
+	# --- блок «Флаг»: касание = финиш
+	g._spawn_block(8, 7, "goal", Vector2i(10, 5), 0)
+	_run_phase()
+	_put(Vector2(168, 96))
+	await _frames(5)
+	check(g.my_state == "finished", "блок-флаг засчитал финиш (%s)" % g.my_state)
+	g._clear_blocks()
+	await _frames(2)
+
+	# --- телепорты работают парой
+	g._spawn_block(9, 7, "teleporter", Vector2i(5, 5), 0)
+	g._spawn_block(10, 7, "teleporter", Vector2i(20, 5), 0)
+	_run_phase()
+	_put(Vector2(5 * 16 + 8, 5 * 16 + 8))
+	g.player.active = false
+	await _frames(25)
+	check(absf(g.player.position.x - (20 * 16 + 8)) < 6.0, "телепорт перенёс к напарнику (x=%.0f)" % g.player.position.x)
+	g._clear_blocks()
+	await _frames(2)
+
+	# --- дорожка несёт игрока вдоль направления
+	g._spawn_block(11, 7, "treadmill", Vector2i(10, 8), 0)
+	_run_phase()
+	_put(Vector2(10 * 16 + 20, 128 - 15))
+	var tx: float = g.player.position.x
+	await _frames(30)
+	check(g.player.position.x > tx + 10.0, "дорожка несёт вправо (%.0f → %.0f)" % [tx, g.player.position.x])
+	g._clear_blocks()
+	await _frames(2)
+
+	# --- вентилятор поднимает
+	g._spawn_block(12, 7, "upblower", Vector2i(10, 10), 0)
+	_run_phase()
+	_put(Vector2(168, 120))
+	await _frames(12)
+	check(g.player.velocity.y < -40.0, "вентилятор поднимает (vy=%.0f)" % g.player.velocity.y)
+	g._clear_blocks()
+	await _frames(2)
+
+	# --- чёрная дыра затягивает и убивает
+	g._spawn_block(13, 7, "blackhole", Vector2i(10, 5), 0)
+	_run_phase()
+	_put(Vector2(184 + 30, 104))
+	await _frames(90)
+	check(g.my_state != "alive", "чёрная дыра убила игрока (%s)" % g.my_state)
+	g._clear_blocks()
+	await _frames(2)
+
+	# --- шестерёнка убивает, валун срывается и давит
+	g._spawn_block(14, 7, "saw", Vector2i(10, 8), 0)
+	_run_phase()
+	_put(Vector2(176, 144))
+	await _frames(5)
+	check(g.my_state != "alive", "шестерёнка убила игрока")
+	g._clear_blocks()
+	await _frames(2)
+	g._spawn_block(15, 7, "boulder", Vector2i(10, 8), 0)
+	_run_phase()
+	_put(Vector2(176 + 60, 144))
+	g.player.active = false
+	await _frames(60)
+	check(g.my_state != "alive", "валун скатился и убил игрока")
+	g._clear_blocks()
+	await _frames(2)
 
 	# --- вне забега всё стоит
 	g.on_phase(Catalog.Phase.PICK, {"round": 2, "offer": ["plank"], "time": 15.0})
