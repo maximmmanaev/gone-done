@@ -5,6 +5,8 @@ extends Node2D
 signal leave_requested
 
 const CELL := Catalog.CELL
+const RUN_ZOOM := 2.3                # во время забега камера держится у игрока; на расстановке видна вся карта
+const VIEW_CENTER := Vector2(640, 360)
 
 var phase: int = -1
 var round_no := 0
@@ -61,6 +63,9 @@ var sudden_ids: Array = []            # ничья на финише: между
 var giveup_armed := 0.0               # до какого момента (сек) второе нажатие «Сдаться» подтверждает
 var finish_deadline := 0.0            # когда кончится время после первого финиша; 0 — таймера нет
 var touch_root: Node2D
+var cam: Camera2D
+var grid: GridOverlay
+var sprint_btn: TouchScreenButton
 
 
 func _ready() -> void:
@@ -108,6 +113,18 @@ func _build_level() -> void:
 	player.visible = false
 	add_child(player)
 
+	grid = GridOverlay.new()
+	add_child(grid)
+
+	cam = Camera2D.new()
+	cam.limit_left = 0
+	cam.limit_top = 0
+	cam.limit_right = Catalog.GRID_W * CELL
+	cam.limit_bottom = 720
+	cam.position = VIEW_CENTER
+	add_child(cam)
+	cam.make_current()
+
 	ghost = ColorRect.new()
 	ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ghost.visible = false
@@ -116,18 +133,14 @@ func _build_level() -> void:
 	add_child(ghost)
 
 
-## Уровень выбранной карты (его выбирает хозяин в лобби): картинка уровня лежит фоном, земля и платформы — невидимые
+## Уровень выбранной карты (его выбирает хозяин в лобби): векторный рисунок уровня (assets/levels/levelN.vec) лежит фоном, земля и платформы — невидимые
 ## коллайдеры ровно по нарисованному, опасные зоны (шипы, слизь) убивают при касании. Старый уровень убираем.
 func _set_map(map: int) -> void:
 	for root_node in [roofs_root, sky_root]:
 		for c in root_node.get_children():
 			root_node.remove_child(c)
 			c.queue_free()
-	var bg := Sprite2D.new()
-	bg.texture = load("res://assets/levels/level%d.jpg" % (map + 1))
-	bg.centered = false
-	bg.scale = Vector2(Catalog.GRID_W * CELL, Catalog.GRID_H * CELL) / bg.texture.get_size()
-	sky_root.add_child(bg)
+	sky_root.add_child(VectorLevel.make_node("res://assets/levels/level%d.vec" % (map + 1)))   # векторный фон: чёткий при любом зуме
 	for r in Catalog.MAPS[map].rects:
 		var body := StaticBody2D.new()
 		_fill_body(body, r, Color.WHITE, "ground")
@@ -617,6 +630,8 @@ func _build_touch() -> void:
 			text.add_theme_constant_override("outline_size", 5)
 			b.add_child(text)
 		touch_root.add_child(b)
+		if d[0] == "sprint":
+			sprint_btn = b
 	touch_root.hide()
 
 
@@ -648,6 +663,7 @@ func _set_touch(on: bool) -> void:
 
 func on_phase(p: int, data: Dictionary) -> void:
 	phase = p
+	grid.visible = p == Catalog.Phase.PLACE
 	_hide_panels()
 	_set_touch(false)
 	for m in movers:
@@ -683,6 +699,7 @@ func on_phase(p: int, data: Dictionary) -> void:
 			player.jump_scale = 1.0
 			player.gravity_scale = 0.6 if Net.rules.gravity == "low" else 1.0
 			player.sprint_allowed = bool(Net.rules.sprint)
+			player.sprint_on = false
 			run_clock = 0.0
 			if Net.clock_synced() and data.has("started"):
 				run_clock = clampf((Net.server_now_ms() - float(data.started)) / 1000.0, 0.0, 2.0)
@@ -1026,7 +1043,17 @@ func _physics_process(delta: float) -> void:
 			player.velocity.x, player.velocity.y, player.facing < 0)
 
 
+func _update_camera(delta: float) -> void:
+	var follow := phase == Catalog.Phase.RUN and player.visible and (my_state == "alive" or my_ghost)
+	var z := RUN_ZOOM if follow else 1.0
+	cam.zoom = cam.zoom.lerp(Vector2(z, z), clampf(delta * 6.0, 0.0, 1.0))
+	cam.position = cam.position.lerp(player.position if follow else VIEW_CENTER, clampf(delta * 10.0, 0.0, 1.0))
+
+
 func _process(delta: float) -> void:
+	_update_camera(delta)
+	if sprint_btn:
+		sprint_btn.modulate = Color(0.55, 1.0, 0.55, 1.0) if player.sprint_on else Color.WHITE
 	for id in remote_nodes:
 		var n: Node2D = remote_nodes[id]
 		if n.visible and remote_target.has(id):

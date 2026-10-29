@@ -8,6 +8,7 @@ const SIDE_BOUNCE_LIFT := 130.0      # боковая пружина ещё и �
 
 var body_color := Color.WHITE
 var sprint_allowed := true   # правило комнаты «без бега»
+var sprint_on := false       # бег переключается нажатием: нажали — включился, нажали ещё раз — выключился
 var kind := 0
 var insect: Node2D
 
@@ -30,9 +31,12 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if not active:
 		velocity = Vector2.ZERO
+		sprint_on = false
 		return
 	read_local_input()
-	sprint = sprint and sprint_allowed
+	if Input.is_action_just_pressed("sprint"):
+		sprint_on = not sprint_on
+	sprint = sprint_on and sprint_allowed
 	step(delta)
 	_update_pupil()
 

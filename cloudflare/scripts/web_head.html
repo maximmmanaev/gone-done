@@ -41,3 +41,22 @@ html, body {
 	window.addEventListener('scroll', function () { window.scrollTo(0, 0); });
 })();
 </script>
+<script>
+// Полный экран при первом касании или клавише (браузер разрешает его только по жесту пользователя).
+// iPhone Safari полноэкранный режим для страниц не поддерживает — там помогает «На экран Домой».
+(function () {
+	var done = false;
+	function go() {
+		if (done) return;
+		var el = document.documentElement;
+		var req = el.requestFullscreen || el.webkitRequestFullscreen;
+		done = true;
+		if (!req) return;
+		try {
+			var p = req.call(el);
+			if (p && p.catch) p.catch(function () { done = false; });
+		} catch (e) { done = false; }
+	}
+	['pointerup', 'touchend', 'click', 'keydown'].forEach(function (n) { window.addEventListener(n, go, { passive: true }); });
+})();
+</script>

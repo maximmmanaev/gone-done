@@ -111,7 +111,13 @@ func _ready() -> void:
 	print("TEST: скорость ходьбы=%.0f, бега=%.0f (×%.2f)" % [normal_vx, sprint_vx, sprint_vx / normal_vx])
 	check(absf(normal_vx - Player.SPEED) < 5.0, "обычная скорость = SPEED")
 	check(sprint_vx / normal_vx > 1.5 and sprint_vx / normal_vx < 1.6, "бег ×1.5–1.6")
-	# отпустили бег на земле — возвращаемся к обычной скорости
+	# повторное нажатие выключает бег (он переключается, а не удерживается) — возвращаемся к обычной скорости
+	check(p.sprint_on, "бег остался включённым после отпускания кнопки")
+	Input.action_press("sprint")
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	Input.action_release("sprint")
+	check(not p.sprint_on, "второе нажатие выключило бег")
 	Input.action_press("move_right")
 	for i in 40:
 		await get_tree().physics_frame
@@ -135,7 +141,12 @@ func _ready() -> void:
 	for i in 3:
 		await get_tree().physics_frame
 	Input.action_release("jump")
-	Input.action_release("sprint")           # отпустили бег уже в воздухе
+	Input.action_release("sprint")
+	await get_tree().physics_frame
+	Input.action_press("sprint")             # бег переключается: второе нажатие в воздухе выключает его
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	Input.action_release("sprint")
 	for i in 8:
 		await get_tree().physics_frame
 	check(not p.is_on_floor() and p.velocity.x > Player.SPEED * 1.25, "в воздухе импульс бега почти не теряется (%.0f)" % p.velocity.x)
@@ -262,6 +273,7 @@ func _ready() -> void:
 
 
 func _reset_player(g: Node2D) -> void:
+	g.player.sprint_on = false
 	g.player.global_position = g._spawn_pos(0)
 	g.player.velocity = Vector2.ZERO
 

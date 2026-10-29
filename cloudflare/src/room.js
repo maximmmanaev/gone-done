@@ -28,6 +28,7 @@ const defaultRules = () => Object.fromEntries(Object.entries(RULES).map(([k, v])
 const PICK_TIME = 15;
 const PLACE_TIME = 25;
 const RESULT_TIME = 6;
+const ALL_DEAD_RESULT_TIME = 1; // секунд до следующего раунда, если не дошёл никто
 const TURN_TIME = 15; // классический режим: секунд на ход при расстановке
 const FINISH_GRACE = 20; // секунд остальным после того, как первый игрок дошёл до флага
 const MAX_MESSAGE = 2048;
@@ -479,9 +480,10 @@ export class Room {
 
   endRun() {
     this.phase = Phase.RESULT;
-    this.setTimer(RESULT_TIME);
     const count = this.players.size;
     const finishers = [...this.players].filter(([, p]) => p.state === "finished").map(([id]) => id);
+    // все погибли и никто не дошёл — смотреть не на что, следующий раунд через секунду
+    this.setTimer(finishers.length === 0 ? ALL_DEAD_RESULT_TIME : RESULT_TIME);
     const result = {};
     for (const id of this.players.keys()) result[id] = { gain: 0, notes: [] };
 

@@ -3,6 +3,7 @@
 // Нужен, чтобы проверять игру в браузере там, где wrangler недоступен. На Cloudflare он не используется.
 //   node test/dev_server.mjs [порт]
 import http from "node:http";
+import https from "node:https";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -20,7 +21,16 @@ const MIME = {
   ".pck": "application/octet-stream", ".wasm": "application/wasm",
 };
 
-const server = http.createServer((req, res) => {
+// HTTPS нужен телефону (Godot Web требует безопасный контекст). Если рядом лежат dev-cert.pem и dev-key.pem
+// (openssl, см. README), сервер поднимается по https; иначе — обычный http.
+const certFile = path.join(here, "dev-cert.pem");
+const keyFile = path.join(here, "dev-key.pem");
+const useTls = fs.existsSync(certFile) && fs.existsSync(keyFile);
+const make = (handler) => useTls
+  ? https.createServer({ cert: fs.readFileSync(certFile), key: fs.readFileSync(keyFile) }, handler)
+  : http.createServer(handler);
+
+const server = make((req, res) => {
   const url = new URL(req.url, "http://localhost");
   if (url.pathname === "/index.wasm") {
     const parts = [0, 1].map((i) => fs.readFileSync(path.join(PUBLIC, `index.wasm.part${i}`)));
@@ -91,4 +101,4 @@ server.on("upgrade", async (req, socket) => {
   socket.on("error", () => ws.close());
 });
 
-server.listen(PORT, "0.0.0.0", () => console.log(`dev-сервер: http://localhost:${PORT}`));
+server.listen(PORT, "0.0.0.0", () => console.log(`dev-сервер: ${useTls ? "https" : "http"}://localhost:${PORT}`));

@@ -286,6 +286,23 @@ await test("минимум игроков из MIN_PLAYERS", async () => {
   host.close();
 });
 
+await test("все погибли — следующий раунд через секунду, а не через RESULT_TIME", async () => {
+  const env = makeEnv({ TIME_SCALE: "0.05" });
+  const host = await create(env);
+  host.send({ t: "start" });
+  await host.phase(1, 2000);
+  await host.phase(2, 2000);
+  await host.phase(3, 3000);
+  host.send({ t: "died", uid: 0 });
+  await host.type("result", 2000);
+  const t0 = Date.now();
+  await host.phase(1, 3000);
+  const dt = Date.now() - t0;
+  // TIME_SCALE 0.05: 1 с превращается в 50 мс, а прежние 6 с — в 300 мс
+  assert.ok(dt < 200, `следующий раунд должен начаться через ~50 мс, а не через ${dt} мс`);
+  host.close();
+});
+
 await test("таймеры: выбор и расстановка идут по времени, забег — без лимита, пока никто не дошёл", async () => {
   const env = makeEnv({ TIME_SCALE: "0.05" });
   const host = await create(env);
