@@ -53,7 +53,7 @@ func _physics_process(delta: float) -> void:  # C# FixedUpdate
 	if pause_wind:
 		return
 	for c: Character in affected_characters:
-		if not is_instance_valid(c) or c.dead:
+		if not is_instance_valid(c) or c.dead or c.is_ghost:
 			continue
 		if operation_mode == OperationMode.Blackhole:
 			var center := blackhole_center.global_position if blackhole_center else global_position
@@ -67,7 +67,7 @@ func _physics_process(delta: float) -> void:  # C# FixedUpdate
 			c.wind_x = pull.x
 			c.wind_y = pull.y
 			if dist < kill_radius:
-				c.kill_character("blackhole")
+				c.kill_character("blackhole", self)
 		else:
 			var push := blow_direction.normalized() * character_blow_power
 			c.wind_x = push.x

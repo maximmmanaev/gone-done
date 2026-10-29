@@ -14,4 +14,4 @@ func _ready() -> void:
 func act(_delta: float) -> void:
 	for c: Character in zone_characters:
 		if is_instance_valid(c):
-			c.kill_character(kill_type if kill_type != "" else "toxic")
+			c.kill_character(kill_type if kill_type != "" else "toxic", self)

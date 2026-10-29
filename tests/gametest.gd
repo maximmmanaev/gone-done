@@ -89,7 +89,7 @@ func _ready() -> void:
 			if nx > 34:
 				nx = 22
 	check(g.block_nodes.size() == uid, "созданы все блоки (%d)" % uid)
-	check(Catalog.BLOCKS.size() == 14, "в каталоге 14 блоков")
+	check(Catalog.BLOCKS.size() == 20, "в каталоге 20 блоков")
 	# лифт (повёрнутый листок) ездит по вертикали, обычный листок — по горизонтали
 	var axes := {}
 	for m in g.movers:

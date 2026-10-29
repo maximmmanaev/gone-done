@@ -617,3 +617,68 @@ static func make_hazard(type: String, size: Vector2, color: Color) -> Node2D:
 	n.size = size
 	n.color = color
 	return n
+
+
+# ---------- блоки из scripts/ported (лёд, мёд, яд, пила на рельсе, топор, ветер) ----------
+
+class PortedDraw extends Node2D:
+	var type := ""
+	var size := Vector2(16, 16)
+	var color := Color.WHITE
+	var angle := 0.0          # вращение пилы
+	var show_blade := true    # у пилы на рельсе диск рисует сам подвижный узел, рельса — только направляющую
+
+	func _draw() -> void:
+		var r := Rect2(-size / 2.0, size)
+		match type:
+			"ice":
+				Art.rect_shape(self, r, color)
+				for i in 3:
+					var x := r.position.x + size.x * (0.2 + 0.3 * i)
+					draw_line(Vector2(x, r.position.y + 3), Vector2(x + 7, r.position.y + size.y - 4), Color(1, 1, 1, 0.75), 1.6)
+			"honey":
+				Art.rect_shape(self, r, color)
+				for i in int(size.x / 16.0):
+					var x := r.position.x + 8.0 + i * 16.0
+					Art.disc(self, Vector2(x, r.end.y - 1.0), 3.5, Art.lighter(color, 0.15), 1.6)
+			"toxic":
+				Art.rect_shape(self, Rect2(r.position + Vector2(0, size.y * 0.35), Vector2(size.x, size.y * 0.65)), color)
+				for i in int(size.x / 12.0):
+					Art.disc(self, Vector2(r.position.x + 7.0 + i * 12.0, r.position.y + size.y * 0.5), 3.0, Art.lighter(color, 0.3), 1.4)
+			"sawrail":
+				Art.stroke(self, Vector2(r.position.x + 4, 0), Vector2(r.end.x - 4, 0), Color(0.45, 0.45, 0.5), 3.0)
+				if show_blade:
+					_blade(Vector2(r.position.x + size.y / 2.0, 0), size.y / 2.0)
+			"sawblade":
+				_blade(Vector2.ZERO, size.y / 2.0)
+			"axearm":
+				Art.stroke(self, Vector2(0, 0), Vector2(0, size.y - 8), Color(0.45, 0.35, 0.25), 3.0)
+				Art.disc(self, Vector2(0, size.y - 6), 8.0, color, 2.2)
+			"axe":
+				Art.disc(self, Vector2.ZERO, 3.0, Color(0.35, 0.35, 0.4), 1.6)
+			"wind":    # стрелки смотрят вверх: блок без поворота дует вверх
+				for col in 3:
+					var x := r.position.x + size.x * (0.2 + 0.3 * col)
+					draw_line(Vector2(x, r.end.y - 4), Vector2(x, r.position.y + 4), Color(color, 0.7), 2.4)
+					draw_colored_polygon(PackedVector2Array([Vector2(x, r.position.y + 4), Vector2(x - 5, r.position.y + 14), Vector2(x + 5, r.position.y + 14)]), Color(color, 0.8))
+				draw_rect(r, Color(color, 0.12))
+				draw_rect(r, Color(color, 0.5), false, 1.5)
+
+	func _blade(c: Vector2, rad: float) -> void:
+		Art.disc(self, c, rad - 1.0, color, 2.2)
+		for k in 8:
+			var a := angle + k * PI / 4.0
+			draw_line(c, c + Vector2(cos(a), sin(a)) * (rad - 2.0), Art.INK, 2.0)
+
+	func _process(delta: float) -> void:
+		if type == "sawrail" or type == "sawblade":
+			angle += delta * 10.0
+			queue_redraw()
+
+
+static func make_ported(type: String, size: Vector2, color: Color) -> Node2D:
+	var n := PortedDraw.new()
+	n.type = type
+	n.size = size
+	n.color = color
+	return n

@@ -27,7 +27,14 @@ MLAPI, I2), консольная/Steam/Twitch-обвязка, планшетно
 - Блоки: `spring`, `ice`, `honey`, `goal_block`, `coin`, `toxic_waste`, `linear_saw`, `swinging_axe`, `moving_platform`, `horizontal_moving_platform`.
 - Опасности: `hazards/saw_spin`, `hazards/saw_spin_and_move`, `hazards/wind_area` (ветер и чёрная дыра).
 
-Остальные файлы — по-прежнему каркасы с `pass`. В живую игру (`game.gd`) блоки из `ported/` пока не подключены:
+Остальные файлы — по-прежнему каркасы с `pass`.
+
+## Подключено к игре
+
+Шесть блоков: лёд (`Ice`), мёд (`Honey`), яд (`ToxicWaste`), пила на рельсе (`LinearSaw`), топор (`SwingingAxe`), ветер (`WindArea`). Они есть в каталоге
+клиента и сервера (`catalog.gd`/`catalog.js`, `Catalog.PORTED_KINDS`), создаются в `game.gd` (`_spawn_ported`) и работают только в забеге.
+Игрок — `Player extends Character`; смерть от этих блоков идёт через `Character.died` и `last_killer`, поэтому очки получает хозяин блока.
+Тест: `tests/portedgametest.tscn`. В живую игру (`game.gd`) блоки из `ported/` пока не подключены:
 там свой каталог блоков и зеркальная логика на сервере (`catalog.js`/`room.js`).
 
 ## Правила перевода

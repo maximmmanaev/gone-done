@@ -68,6 +68,8 @@ const PLAYER_COLORS := [
 # и насовсем сносят постройки в зоне — это сами клетки бомбы (динамит 1×1, бомба 2×2, ядерная 3×3). Взрывом управляет сервер.
 # Ловушки-стрелки, огнемёт и маятник считает каждый клиент по часам забега (как листок); направление — куда «смотрит» блок
 # (0 — вверх, 1 — вправо, 2 — вниз, 3 — влево), убивает того, кого коснётся; очки за такую смерть получает хозяин ловушки.
+const PORTED_KINDS := ["ice", "honey", "toxic", "sawrail", "axe", "wind"]   # их логику ведут классы из scripts/ported
+
 const BLOCKS := {
 	"plank":  {"name": "Щепка",     "size": Vector2i(3, 1), "kind": "solid",  "color": Color(0.78, 0.59, 0.31)},
 	"box":    {"name": "Коробок",   "size": Vector2i(2, 2), "kind": "solid",  "color": Color(0.80, 0.55, 0.33)},
@@ -86,6 +88,14 @@ const BLOCKS := {
 	"coin":   {"name": "Монета",    "size": Vector2i(1, 1), "kind": "coin",   "color": Color(0.98, 0.80, 0.20)},
 	"pendulum": {"name": "Маятник", "size": Vector2i(1, 1), "kind": "pendulum", "color": Color(0.55, 0.55, 0.60),
 		"arm": 2.5, "swing": 70.0, "freq": 1.8},
+	# Блоки из scripts/ported (логика — Placeable и наследники): ice/honey — платформы с особой поверхностью,
+	# toxic/sawrail/axe — убивают (очки получает хозяин), wind — дует в сторону поворота.
+	"ice":    {"name": "Лёд",       "size": Vector2i(3, 1), "kind": "ice",    "color": Color(0.62, 0.86, 0.96)},
+	"honey":  {"name": "Мёд",       "size": Vector2i(3, 1), "kind": "honey",  "color": Color(0.96, 0.69, 0.15)},
+	"toxic":  {"name": "Яд",        "size": Vector2i(2, 1), "kind": "toxic",  "color": Color(0.45, 0.85, 0.20)},
+	"sawrail": {"name": "Пила на рельсе", "size": Vector2i(4, 1), "kind": "sawrail", "color": Color(0.72, 0.72, 0.78)},
+	"axe":    {"name": "Топор",     "size": Vector2i(1, 1), "kind": "axe",    "color": Color(0.60, 0.60, 0.66)},
+	"wind":   {"name": "Ветер",     "size": Vector2i(3, 3), "kind": "wind",   "color": Color(0.70, 0.88, 0.95)},
 }
 
 

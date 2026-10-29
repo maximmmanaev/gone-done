@@ -25,7 +25,7 @@ func act(delta_time: float) -> void:  # C# Act
 	position = start_origin + travel_dir.normalized() * amount_moved
 	for c: Character in zone_characters:
 		if is_instance_valid(c):
-			c.kill_character(kill_type if kill_type != "" else "saw")
+			c.kill_character(kill_type if kill_type != "" else "saw", self)
 
 var travel_dir := Vector2.RIGHT
 var travel_distance := 64.0
@@ -38,3 +38,9 @@ var _sign := 1.0
 func _ready() -> void:
 	start_origin = position
 	setup_zone(blade_size)
+
+
+func reset_play_state() -> void:
+	amount_moved = 0.0
+	_sign = 1.0
+	position = start_origin

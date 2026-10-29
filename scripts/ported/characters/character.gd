@@ -101,12 +101,14 @@ var dying := false
 var dead := false
 var success := false
 var frozen := false
+var is_ghost := false                         # призрак: блоки на него не действуют
 var paused := false
 var temp_lock_input := false
 var facing := 1
 var wall_jump_direction := 0
 var last_fall_speed := 0.0
 var last_death := ""
+var last_killer: Node = null                  # блок, убивший персонажа (для очков хозяину ловушки)
 var coins_collected := 0
 
 var current_anim := AnimState.IDLE
@@ -365,10 +367,11 @@ func _update_anim() -> void:
 
 # ---------- жизнь, смерть, финиш ----------
 
-func kill_character(cause: String) -> void:
-	if dead or dying or success or invincible_timer > 0.0:
+func kill_character(cause: String, source: Node = null) -> void:
+	if dead or dying or success or is_ghost or invincible_timer > 0.0:
 		return
 	last_death = cause
+	last_killer = source
 	dying = true
 	death_timer = 0.0
 	velocity = Vector2(-facing * deathforce * 0.3, -deathforce)

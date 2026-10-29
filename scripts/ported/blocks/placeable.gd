@@ -429,6 +429,8 @@ func _zone_body_exited(body: Node) -> void:
 
 ## По умолчанию — применяет к персонажу физические модификаторы блока (get_physics_modifiers), пока он в зоне.
 func on_character_entered(c: Character) -> void:
+	if c.is_ghost:
+		return
 	var merged := {}
 	for pm: Dictionary in get_physics_modifiers():
 		for k in pm:
@@ -439,3 +441,8 @@ func on_character_entered(c: Character) -> void:
 
 func on_character_exited(c: Character) -> void:
 	c.remove_physics_modifier(self)
+
+
+## Вернуть блок в исходное состояние перед новым забегом (переопределяют движущиеся блоки).
+func reset_play_state() -> void:
+	pass

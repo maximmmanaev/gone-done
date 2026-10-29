@@ -18,7 +18,7 @@ func act(delta_time: float) -> void:  # C# Act
 	pivot.rotation = amplitude * sin(_t)
 	for c: Character in zone_characters:
 		if is_instance_valid(c):
-			c.kill_character(kill_type if kill_type != "" else "axe")
+			c.kill_character(kill_type if kill_type != "" else "axe", self)
 
 var amplitude := 1.0           # размах качания, рад
 var axe_length := 40.0
@@ -31,3 +31,9 @@ func _ready() -> void:
 	if rotate_locked:
 		remove_child(z)
 		rotate_locked.add_child(z)
+
+
+func reset_play_state() -> void:
+	_t = 0.0
+	var pivot: Node2D = rotate_locked if rotate_locked else self
+	pivot.rotation = 0.0

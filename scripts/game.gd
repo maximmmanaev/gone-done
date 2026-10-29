@@ -66,6 +66,7 @@ var touch_root: Node2D
 var cam: Camera2D
 var grid: GridOverlay
 var sprint_btn: TouchScreenButton
+var ported: Array = []              # логика блоков из scripts/ported (лёд, мёд, яд, пила на рельсе, топор, ветер)
 
 
 func _ready() -> void:
@@ -112,6 +113,7 @@ func _build_level() -> void:
 	player.kind = _kind_of(my_id)
 	player.visible = false
 	add_child(player)
+	player.died.connect(_on_player_died)
 
 	grid = GridOverlay.new()
 	add_child(grid)
@@ -219,6 +221,8 @@ func _make_visual(type: String, color: Color, style := "block") -> Node2D:
 		return Art.make_bomb(type, px, color)
 	if kind == "coin":
 		return Art.make_coin(px, color)
+	if Catalog.PORTED_KINDS.has(kind):
+		return Art.make_ported(type, px, color)
 	if kind == "shooter" or kind == "flame" or kind == "pendulum":
 		var info: Dictionary = Catalog.BLOCKS[type]
 		var arm: float = float(info.get("arm", 0.0)) * CELL if style != "icon" else 0.0
@@ -246,6 +250,8 @@ func _spawn_block(uid: int, owner_id: int, type: String, origin: Vector2i, rot :
 		var body := StaticBody2D.new()
 		_fill_body(body, rect, color, type, 0, rot)
 		node = body
+	elif Catalog.PORTED_KINDS.has(kind):
+		node = _spawn_ported(uid, type, kind, rect, rot, color)
 	elif kind == "mover":
 		var body := AnimatableBody2D.new()
 		body.sync_to_physics = true
@@ -287,6 +293,98 @@ func _spawn_block(uid: int, owner_id: int, type: String, origin: Vector2i, rot :
 	blocks_root.add_child(node)
 	block_nodes[uid] = node
 	Catalog.mark(type, origin, occupied, rot)
+
+
+## Блок, логику которого ведёт класс из scripts/ported. Возвращает корневой узел блока.
+func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int, color: Color) -> Node2D:
+	var size := Vector2(rect.size) * CELL
+	var center := Vector2(rect.position) * CELL + size / 2.0
+	var logic: Placeable
+	var node: Node2D
+	match kind:
+		"ice", "honey":    # твёрдая платформа с особой поверхностью: зона над верхней гранью меняет трение, бег и прыжок
+			var body := StaticBody2D.new()
+			_fill_body(body, rect, color, type, 0, rot)
+			logic = Ice.new() if kind == "ice" else Honey.new()
+			body.add_child(logic)
+			logic.setup_zone(Vector2(size.x, 6), Vector2(0, -size.y / 2.0 - 3.0))
+			node = body
+		"toxic":
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_rotated(_make_visual(type, color), rot))
+			logic = ToxicWaste.new()
+			node.add_child(logic)
+			logic.setup_zone(size)
+		"sawrail":
+			node = Node2D.new()
+			node.position = center
+			var rail: Art.PortedDraw = _make_visual(type, color)
+			rail.show_blade = false
+			node.add_child(_rotated(rail, rot))
+			var saw := LinearSaw.new()
+			var dir := Vector2.RIGHT if rot % 2 == 0 else Vector2.DOWN
+			var length := maxf(size.x, size.y)
+			saw.travel_dir = dir
+			saw.travel_distance = length - CELL
+			saw.blade_size = Vector2(CELL - 4, CELL - 4)
+			saw.position = -dir * (length - CELL) / 2.0
+			saw.add_child(Art.make_ported("sawblade", Vector2(CELL, CELL), color))
+			node.add_child(saw)
+			logic = saw
+		"axe":
+			node = Node2D.new()
+			node.position = center
+			node.rotation = rot * PI / 2.0
+			var pivot := Node2D.new()
+			pivot.add_child(Art.make_ported("axearm", Vector2(CELL, CELL * 2.5), color))
+			node.add_child(pivot)
+			node.add_child(_make_visual(type, color))
+			var axe := SwingingAxe.new()
+			axe.rotate_locked = pivot
+			axe.axe_length = CELL * 2.5
+			node.add_child(axe)
+			logic = axe
+		"wind":
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_make_visual(type, color))
+			var wind := WindArea.new()
+			wind.area_size = size
+			wind.blow_direction = Catalog.facing_of(rot)
+			wind.pause_wind = phase != Catalog.Phase.RUN
+			node.add_child(wind)
+			wind.set_meta("uid", uid)
+			ported.append(wind)
+			return node
+	logic.set_meta("uid", uid)
+	logic.original_position = logic.position
+	ported.append(logic)
+	return node
+
+
+## Включает или выключает блоки из ported: в забеге пилы, топоры и яд работают, ветер дует; в остальное время стоят.
+func _set_ported_active(on: bool) -> void:
+	ported = ported.filter(func(p): return is_instance_valid(p))
+	for p in ported:
+		if p is WindArea:
+			p.pause_wind = not on
+			if not on:
+				for c: Character in p.affected_characters:
+					c.wind_x = 0.0
+					c.wind_y = 0.0
+		else:
+			p.reset_play_state()
+			if p is ActiveBlock:
+				p.is_active = on
+				p.paused = false
+
+
+func _on_player_died(_cause: String) -> void:
+	var uid := -1
+	if is_instance_valid(player.last_killer) and player.last_killer.has_meta("uid"):
+		uid = int(player.last_killer.get_meta("uid"))
+	_die(uid)
 
 
 # ======================================================================
@@ -448,11 +546,17 @@ func _on_arrow_hit(body: Node, arrow: Area2D, uid: int) -> void:
 
 
 func _clear_blocks() -> void:
+	for p in ported:
+		if is_instance_valid(p) and p is Placeable:
+			p.disable_0()      # узел удалится только в конце кадра — до этого он не должен ни убивать, ни дуть
+		elif is_instance_valid(p) and p is WindArea:
+			p.pause_wind = true
 	for uid in block_nodes:
 		if is_instance_valid(block_nodes[uid]):
 			block_nodes[uid].queue_free()
 	block_nodes.clear()
 	coin_nodes.clear()
+	ported.clear()
 	block_defs.clear()
 	movers.clear()
 	spinners.clear()
@@ -556,6 +660,10 @@ func _leave_run(text: String, died := true) -> void:
 		player.modulate = Color(1, 1, 1, 0.45) if mode == "ghost" else Color(0.55, 0.55, 0.55, 0.85)
 		player.jump_scale = 0.6 if mode == "corpse" else 1.0
 		player.sprint_allowed = mode == "ghost" and bool(Net.rules.sprint)
+		player.is_ghost = true      # блоки из ported на призрака не действуют
+		player.dying = false
+		player.dead = false
+		player.reset_variables()
 		info_label.text = text + (" Вы призрак." if mode == "ghost" else " Вы труп: можно прыгать на клетку.")
 		return
 	player.active = false
@@ -670,6 +778,7 @@ func on_phase(p: int, data: Dictionary) -> void:
 		m.node.position = m.base
 	if p != Catalog.Phase.RUN:
 		_reset_traps()
+	_set_ported_active(p == Catalog.Phase.RUN)
 	match p:
 		Catalog.Phase.PICK:
 			if int(Net.rules.map) != level_map:
@@ -700,6 +809,12 @@ func on_phase(p: int, data: Dictionary) -> void:
 			player.gravity_scale = 0.6 if Net.rules.gravity == "low" else 1.0
 			player.sprint_allowed = bool(Net.rules.sprint)
 			player.sprint_on = false
+			player.dying = false
+			player.dead = false
+			player.success = false
+			player.is_ghost = false
+			player.last_killer = null
+			player.reset_variables()
 			run_clock = 0.0
 			if Net.clock_synced() and data.has("started"):
 				run_clock = clampf((Net.server_now_ms() - float(data.started)) / 1000.0, 0.0, 2.0)
