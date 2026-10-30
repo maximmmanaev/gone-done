@@ -216,7 +216,7 @@ func _make_visual(type: String, color: Color, style := "block") -> Node2D:
 	var original := BlockArt.make(type, px)   # оригинальный спрайт; нет такого — рисуем кодом ниже
 	if original != null:
 		return original
-	if kind == "solid" or kind == "mover" or kind == "crumble" or kind == "autodoor" or kind == "punch":
+	if kind == "solid" or kind == "mover" or kind == "crumble" or kind == "autodoor" or kind == "punch" or kind == "hockey":
 		return Art.make_block(type, px, color)
 	if kind == "bomb":
 		return Art.make_bomb(type, px, color)
@@ -338,6 +338,34 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			pb.glove = glove
 			logic = pb
 			node = body
+		"hockey":           # хоккейный стрелок: шайба по направлению блока отбрасывает, но не убивает
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_rotated(_make_visual(type, color), rot))
+			var hs := HockeyShooter.new()
+			hs.dir = dir
+			hs.muzzle_offset = (size.y / 2.0 if dir.x == 0.0 else size.x / 2.0) + 4.0
+			hs.initial_delay = 1.0 + float(uid % 3) * 0.4
+			node.add_child(hs)
+			logic = hs
+		"cannon":           # пушка: втягивает игрока и выстреливает им по направлению блока
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_rotated(_make_visual(type, color), rot))
+			var cn := AnimalCannon.new()
+			cn.dir = dir
+			cn.muzzle_offset = (size.y / 2.0 if dir.x == 0.0 else size.x / 2.0) + 4.0
+			node.add_child(cn)
+			cn.setup_zone(size * 0.6)
+			logic = cn
+		"beehive":          # улей: через пару секунд выпускает рой, он догоняет ближайшего
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_make_visual(type, color))
+			var bh := Beehive.new()
+			bh.birth_time = 1.5 + float(uid % 3) * 0.5
+			node.add_child(bh)
+			logic = bh
 		"treadmill":        # платформа-конвейер: несёт того, кто стоит или прижат к ней
 			var body := StaticBody2D.new()
 			_fill_body(body, rect, color, type, 0, rot)

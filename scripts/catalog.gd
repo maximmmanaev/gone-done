@@ -70,7 +70,7 @@ const PLAYER_COLORS := [
 # (0 — вверх, 1 — вправо, 2 — вниз, 3 — влево), убивает того, кого коснётся; очки за такую смерть получает хозяин ловушки.
 # Логику всех этих блоков ведут классы из scripts/ported; PORTED_ART — те, чьи картинки рисует Art.PortedDraw (остальные — старые рисунки).
 const PORTED_KINDS := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter", "treadmill", "upblower", "boulder", "blackhole",
-	"goal", "sawslide", "sawspin", "spring", "coin", "mover", "shooter", "flame", "pendulum", "crumble", "autodoor", "punch"]
+	"goal", "sawslide", "sawspin", "spring", "coin", "mover", "shooter", "flame", "pendulum", "crumble", "autodoor", "punch", "hockey", "cannon", "beehive"]
 const PORTED_ART := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter", "treadmill", "upblower", "boulder", "blackhole", "goal", "sawslide"]
 
 const BLOCKS := {
@@ -105,6 +105,9 @@ const BLOCKS := {
 	"crumble": {"name": "Хрупкий блок", "size": Vector2i(3, 1), "kind": "crumble", "color": Color(0.74, 0.56, 0.38)},
 	"autodoor": {"name": "Автодверь", "size": Vector2i(1, 3), "kind": "autodoor", "color": Color(0.55, 0.62, 0.72)},
 	"punch":  {"name": "Боксёр",    "size": Vector2i(2, 1), "kind": "punch",  "color": Color(0.82, 0.30, 0.30)},
+	"hockey": {"name": "Хоккеист", "size": Vector2i(1, 1), "kind": "hockey", "color": Color(0.30, 0.45, 0.75)},
+	"cannon": {"name": "Пушка", "size": Vector2i(2, 2), "kind": "cannon", "color": Color(0.38, 0.40, 0.46)},
+	"beehive": {"name": "Улей", "size": Vector2i(2, 2), "kind": "beehive", "color": Color(0.90, 0.72, 0.20)},
 	"goal":   {"name": "Флаг",      "size": Vector2i(1, 2), "kind": "goal",   "color": Color(0.85, 0.20, 0.20)},
 	"sawslide": {"name": "Пила-бегунок", "size": Vector2i(3, 1), "kind": "sawslide", "color": Color(0.72, 0.72, 0.78)},
 	"wind":   {"name": "Ветер",     "size": Vector2i(3, 3), "kind": "wind",   "color": Color(0.70, 0.88, 0.95)},

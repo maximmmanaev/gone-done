@@ -23,6 +23,9 @@ const MAP := {
 	"toxic": ["Toxic_Water_Pool", true],
 	"autodoor": ["Autodoor", false],
 	"punchglove": ["BoxingGlove-BoxingGlove", false],
+	"hockeypuck": ["HockeyShooter-HockeyPuck", false],
+	"beehive": ["Beehive-Beehive", false],
+	"cannon": ["Cannon-CannonWheel", false],
 }
 
 static var _sprites: Dictionary = {}

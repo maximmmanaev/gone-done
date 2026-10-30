@@ -1,86 +1,66 @@
-# Ported from structur/AnimalCannon.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из AnimalCannon.cs + логика, написанная вручную (константы в декомпиляции потеряны, помечены GUESS). Конвертер этот файл не трогает.
+## Пушка: втягивает персонажа, держит time_to_launch, затем выстреливает им по направлению dir.
 class_name AnimalCannon
 extends ActiveBlock
 
-@export var cannon_animator: AnimationPlayer
-@export var launch_target: Node2D
-@export var smoke_transform: Node2D
-@export var blur_transform: Node2D
-@export var default_smoke_color: Color
-@export var time_to_launch: float
-@export var launch_anticipation: float
-var chrs_in_cannon_data: Dictionary
-var chrs_to_remove_from_cannon: Array
-static var all_animal_cannon: Array
-var net_surrogate_launch_int: int
-@export var booster_center: Node2D
-var tracked_projectiles: Array
-var cool_downs: Dictionary
-var cool_downs_to_remove: Array
-@export var boost_cooldown_time: float
-@export var boost_radius: float
-@export var boost_character_strength: float
-@export var boost_projectile_strength: float
-@export var boost_angle: float
-var next_smoke_color: Color
-var facing_direction: int
+@export var time_to_launch: float = 1.0        # C# TimeToLaunch (значение GUESS)
+@export var launch_anticipation: float = 0.3   # C# LaunchAnticipation (GUESS)
+@export var launch_speed: float = 420.0        # GUESS
+@export var input_lock_after_launch: float = 0.3   # GUESS
+@export var recapture_cooldown: float = 0.8    # GUESS
+var dir := Vector2.UP
+var muzzle_offset := 20.0
+var chrs_in_cannon: Dictionary = {}   # Character -> время в пушке (C# chrsInCannonData)
+var _cooldowns: Dictionary = {}
+var _flying: Dictionary = {}   # Character -> сколько ещё держим скорость выстрела (иначе трение гасит её сразу)
+@export var flight_time: float = 0.35   # GUESS
+var barrel: Node2D
 
-func _enter_tree() -> void:  # C# Awake
-	pass
 
-func place_3(player_number: int, send_event: bool, force: bool) -> void:  # C# Place
-	pass
+func act(delta: float) -> void:
+	for c in _flying.keys():
+		_flying[c] -= delta
+		if not is_instance_valid(c) or _flying[c] <= 0.0 or c.dead or c.dying:
+			_flying.erase(c)
+		elif dir.x != 0.0:
+			c.velocity.x = dir.x * launch_speed
+	for c in _cooldowns.keys():
+		_cooldowns[c] -= delta
+		if not is_instance_valid(c) or _cooldowns[c] <= 0.0:
+			_cooldowns.erase(c)
+	for c: Character in zone_characters:
+		if is_instance_valid(c) and not chrs_in_cannon.has(c) and not _cooldowns.has(c) \
+				and not c.dead and not c.dying and not c.is_ghost and not c.success:
+			chrs_in_cannon[c] = 0.0
+			c.freeze(true)
+			c.velocity = Vector2.ZERO
+	for c in chrs_in_cannon.keys():
+		if not is_instance_valid(c) or c.dead or c.dying:
+			if is_instance_valid(c):
+				c.unfreeze()
+			chrs_in_cannon.erase(c)
+			continue
+		chrs_in_cannon[c] += delta
+		c.global_position = global_position
+		if chrs_in_cannon[c] >= time_to_launch:
+			_launch(c)
 
-func _exit_tree() -> void:  # C# OnDestroy
-	pass
 
-func act(delta_time: float) -> void:  # C# Act
-	pass
+func _launch(c: Character) -> void:
+	chrs_in_cannon.erase(c)
+	c.unfreeze()
+	c.global_position = global_position + dir * muzzle_offset
+	c.velocity = dir * launch_speed
+	c.lock_input_temporarily(input_lock_after_launch)
+	_cooldowns[c] = recapture_cooldown
+	_flying[c] = flight_time
 
-func process_chrs_in_cannon() -> void:  # C# ProcessChrsInCannon
-	pass
 
-func is_player(obj: Node2D, collision_tag: CollisionTag) -> bool:  # C# IsPlayer
-	return false
-
-func is_body(obj: Node2D, collision_tag: CollisionTag) -> bool:  # C# IsBody
-	return false
-
-func on_trigger_stay_2d(c: CollisionShape2D) -> void:  # C# OnTriggerStay2D
-	pass
-
-func destroy_self_3(destroy_children: bool, use_smoke: bool, send_network_signal: bool) -> void:  # C# DestroySelf
-	pass
-
-func pause_0() -> void:  # C# Pause
-	pass
-
-func unpause_0() -> void:  # C# Unpause
-	pass
-
-func cancel_launch() -> void:  # C# CancelLaunch
-	pass
-
-func remove_character_from_cannon(chr: Character) -> void:  # C# RemoveCharacterFromCannon
-	pass
-
-static func on_character_respawned(chr: Character) -> void:  # C# OnCharacterRespawned
-	pass
-
-func shoot_character(character: Character) -> void:  # C# ShootCharacter
-	pass
-
-func smook_poof_spawn() -> void:  # C# SmookPoofSpawn
-	pass
-
-func on_projectile_enter_trigger(collision: CollisionShape2D) -> void:  # C# OnProjectileEnterTrigger
-	pass
-
-func on_projectile_exit_trigger(collision: CollisionShape2D) -> void:  # C# OnProjectileExitTrigger
-	pass
-
-func shoot_projectile_1(projectile: Projectile) -> void:  # C# ShootProjectile
-	pass
-
-func get_cooldown_time(obj: Node2D) -> float:  # C# GetCooldownTime
-	return 0.0
+func reset_play_state() -> void:
+	for c in chrs_in_cannon.keys():
+		if is_instance_valid(c):
+			c.unfreeze()
+	chrs_in_cannon.clear()
+	_cooldowns.clear()
+	_flying.clear()
+	super()

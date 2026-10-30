@@ -1,4 +1,5 @@
-# Ported from structur/BeeSwarm.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из BeeSwarm.cs + рисунок и движение, написанные вручную. Конвертер этот файл не трогает.
+## Рой: несколько жёлтых точек, дрожащих вокруг центра. Кого касается рой — тот умирает (решает Beehive).
 class_name BeeSwarm
 extends Node2D
 
@@ -8,16 +9,19 @@ var caught: Dictionary
 var characters: Array
 var disappearing: bool
 @export var placed_by_player_number: int
-@export var kill_type: String
+@export var kill_type: String = "bees"
+var _t := 0.0
+const COUNT := 6
 
-func _enter_tree() -> void:  # C# Awake
-	pass
 
-func release(target: Character) -> void:  # C# Release
-	pass
+func _process(delta: float) -> void:
+	_t += delta
+	queue_redraw()
 
-func disappear() -> void:  # C# Disappear
-	pass
 
-func on_trigger_enter_2d(collision: CollisionShape2D) -> void:  # C# OnTriggerEnter2D
-	pass
+func _draw() -> void:
+	for i in COUNT:
+		var a := _t * (5.0 + i) + float(i) * 1.7
+		var p := Vector2(cos(a), sin(a * 1.3)) * (3.0 + float(i % 3) * 2.0)
+		draw_circle(p, 2.2, Color(0.15, 0.12, 0.05))
+		draw_circle(p, 1.5, Color(0.98, 0.82, 0.15))

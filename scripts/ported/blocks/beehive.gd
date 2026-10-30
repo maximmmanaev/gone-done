@@ -1,111 +1,69 @@
-# Ported from structur/Beehive.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из Beehive.cs + логика, написанная вручную (константы в декомпиляции потеряны, помечены GUESS). Конвертер этот файл не трогает.
+## Улей: через birth_time выпускает рой; рой догоняет ближайшего персонажа, убивает при касании и возвращается домой.
 class_name Beehive
 extends ActiveBlock
 
-enum BeeState {
-	INACTIVE,
-	SWARM,
-	POSTSWARM,
-	DISAPPEAR,
-	WALKONHIVE,
-}
+@export var birth_time: float = 1.0           # C# birthTime (значение GUESS)
+@export var bee_speed: float = 70.0           # C# beeSpeed (GUESS): медленнее бега 115, от роя можно убежать
+@export var return_bee_speed: float = 90.0    # C# returnBeeSpeed (GUESS)
+@export var follow_bee_accel: float = 240.0   # C# followBeeAccel (GUESS)
+@export var sight_range: float = 260.0        # GUESS
+@export var kill_distance: float = 11.0       # GUESS
+@export var attack_dead_body_time: float = 0.6   # C# attackDeadBodyTime (GUESS): пауза после убийства
 var followed_character: Character
-var bees: BeeSwarm
-@export var bee_hazard: CollisionShape2D
-@export var indicator_bees: Node2D
-@export var animator: AnimationPlayer
-@export var birth_time: float
-@export var bee_speed: float
-@export var return_bee_speed: float
-var attack_dead_body_timer: float
-@export var attack_dead_body_time: float
-var bee_death_anim
-var bee_birth_anim
-var bees_requested: bool
-var bees_moving: bool
-var bees_unleashed: bool
-@export var follow_bee_accel: float
-var follow_bee_acceleration_distance_modifier: Curve
-var follow_bee_distance_to_clump_random_noise_mod: Curve
-var follow_bee_curve: Curve
-@export var velocity_dampening_friction: float
-@export var follow_bees: Node2D
-var bee_transforms: Array
-var last_bee_force: Array
-var follow_bees_velocity: Array
-var random_heading: Array
-var random_magnitude: Array
-var bee_state: Array
-var bee_history: Array
-var bee_history_max_size: int
-var bee_history_current_index: int
-@export var noise_temporal_speed_heading: float
-@export var noise_temporal_speed_magnitude: float
-@export var bee_spawn_point: Node2D
-@export var random_offset_fluctuation_rate: float
-@export var random_heading_speed: float
-var heading_speed_through_swarm: Curve
-@export var target_modifier_speed: float
-@export var post_swarm_random_heading_speed: float
-@export var post_swarm_random_friction: float
-var disappear_bee_acceleration_index_modifier: Curve
-var disappear_bee_distance_to_clump_random_noise_mod: Curve
-var disappear_bee_spring_speed: Curve
-@export var return_random_heading_speed: float
-@export var return_target_modifier_speed: float
-@export var indicator_bee_num: int
-@export var bee_walk_point: Node2D
-@export var bee_walk_speed: float
-@export var bee_walk_random_speed: float
-@export var bee_walk_friction: float
-@export var bee_walktemporal_noise_speed: float
-@export var bee_walk_minimum_random_magnitude: float
-var walking_bee_acceleration_distance_modifier: Curve
-@export var random_rate_of_return_to_hive: int
-@export var random_rate_of_post_swarm: int
-var target_position: Vector3
+var swarm: BeeSwarm
+var unleashed := false
+var _age := 0.0
+var _vel := Vector2.ZERO
+var _pause := 0.0
 
-func _ready() -> void:  # C# Start
-	pass
 
-func set_followed_character(character: Character) -> void:  # C# SetFollowedCharacter
-	pass
+func _ready() -> void:
+	swarm = BeeSwarm.new()
+	swarm.home_hive = self
+	add_child(swarm)
 
-func enable_0() -> void:  # C# Enable
-	pass
 
-func place_3(player_number: int, send_event: bool, force: bool) -> void:  # C# Place
-	pass
+func act(delta: float) -> void:
+	_age += delta
+	if _age < birth_time:
+		return
+	unleashed = true
+	_pause = maxf(_pause - delta, 0.0)
+	followed_character = _nearest_target()
+	if followed_character != null and _pause <= 0.0:
+		var want := (followed_character.global_position - swarm.global_position)
+		_vel = (_vel + want.normalized() * follow_bee_accel * delta).limit_length(bee_speed)
+		swarm.global_position += _vel * delta
+		if swarm.global_position.distance_to(followed_character.global_position) <= kill_distance:
+			followed_character.kill_character("bees", self)
+			_pause = attack_dead_body_time
+			_vel = Vector2.ZERO
+	else:
+		var home := global_position - swarm.global_position
+		var step := return_bee_speed * delta
+		_vel = Vector2.ZERO
+		swarm.global_position += home if home.length() <= step else home.normalized() * step
 
-func place_1(player_number: int) -> void:  # C# Place
-	pass
 
-func do_place() -> void:  # C# doPlace
-	pass
+func _nearest_target() -> Character:
+	var best: Character = null
+	var best_d := sight_range
+	for c: Character in Character.all_characters:
+		if is_instance_valid(c) and not c.dead and not c.dying and not c.is_ghost and not c.success:
+			var d := c.global_position.distance_to(swarm.global_position)
+			if d < best_d:
+				best_d = d
+				best = c
+	return best
 
-func _physics_process(delta: float) -> void:  # C# FixedUpdate
-	pass
 
-func animate_bee_death() -> void:  # C# AnimateBeeDeath
-	pass
-
-func bee_death_animation():  # C# BeeDeathAnimation (coroutine)
-	pass
-
-func animate_bee_birth() -> void:  # C# AnimateBeeBirth
-	pass
-
-func bee_birth_animation():  # C# BeeBirthAnimation (coroutine)
-	pass
-
-func on_trigger_enter_2d(c: CollisionShape2D) -> void:  # C# OnTriggerEnter2D
-	pass
-
-static func get_beehive_from_surrogate_id(id) -> Beehive:  # C# GetBeehiveFromSurrogateID
-	return null
-
-func bee_past_position(frames_in_past: int) -> Vector3:  # C# BeePastPosition
-	return Vector3.ZERO
-
-func _exit_tree() -> void:  # C# OnDestroy
-	pass
+func reset_play_state() -> void:
+	_age = 0.0
+	unleashed = false
+	followed_character = null
+	_vel = Vector2.ZERO
+	_pause = 0.0
+	if swarm != null:
+		swarm.position = Vector2.ZERO
+	super()
