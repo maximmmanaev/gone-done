@@ -228,3 +228,21 @@ godot --headless --path . tests/contracttest.tscn -- --file /tmp/rec.jsonl
   настоящем телефоне не проверялась (запасной путь — ссылка с `?code=`).
 - Лимиты бесплатного плана Cloudflare (запросы к Durable Objects, время работы) для игры с несколькими друзьями
   должны хватать, но проверьте актуальные цифры на странице тарифов.
+
+
+## Оригинальные ассеты и порт (ветка feature/original-port)
+
+Спрайты, шрифты, тексты и звуки оригинала лежат в `../code/assets`; в проект они попадают скриптами
+(сами файлы ~400 МБ в git не входят, `assets/manifest.json` и `assets/audio/events.json` входят):
+
+```
+python3 -I tools/import_assets.py ../code/assets assets
+python3 -I tools/extract_audio.py ../code/assets/audio_banks/New_SoundBank.bnk assets/audio ../code/src/Assembly-CSharp   # нужны vgmstream-cli и ffmpeg
+godot --headless --import --path .
+```
+
+- Персонажи: `scripts/ported/characters/skin_library.gd` собирает анимации из спрайтов оригинала (скины Chicken, Panda, Hippo и др.).
+- Блоки: `scripts/ported/blocks/block_art.gd` подставляет оригинальные спрайты 15 типам блоков; остальные рисуются кодом (`art.gd`).
+- Звук: автозагрузка `Audio` (`scripts/audio.gd`); из 1937 событий банка имена восстановлены у 58 (`SFX_<Животное>_<Действие>`).
+- Правила матча: см. `docs/match-rules.md` — числа очков в оригинале потеряны, правила не менялись.
+- Вне объёма этой ветки: логика блоков «как в оригинале», режимы, редактор уровней, онлайн на оригинальных правилах.
