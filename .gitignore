@@ -4,3 +4,9 @@ node_modules/
 .wrangler/
 dev-cert.pem
 dev-key.pem
+.superpowers/
+assets/sprites/
+assets/textures/
+assets/fonts/
+assets/text/
+assets/audio/
