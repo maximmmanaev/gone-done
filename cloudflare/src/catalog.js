@@ -91,7 +91,12 @@ export const OFFER_DEFAULT = 4;
 export const OFFER_MAX_COPIES = 2;
 export const OFFER_GUARANTEED = ["nuke"];
 
+// Блоки, которых нет в инвентаре оригинала (скриншоты фазы строительства): их не предлагают в выборе (зеркало OFFER_EXCLUDED в catalog.gd).
+// Сами блоки остаются в BLOCKS: флаг ставит карта, а размеры нужны для проверки расстановки.
+export const OFFER_EXCLUDED = ["goal", "boulder", "wind", "toxic", "flamethrower", "crumble", "sawslide", "pillar"];
+
 export const BLOCK_IDS = Object.keys(BLOCKS);
+export const OFFER_IDS = BLOCK_IDS.filter((id) => !OFFER_EXCLUDED.includes(id));
 
 const key = (x, y) => x * 1000 + y;
 

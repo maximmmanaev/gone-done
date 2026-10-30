@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { BLOCKS, BOMBS, GRID_H, GRID_W, MAPS, reservedRects } from "../src/catalog.js";
+import { BLOCKS, BOMBS, OFFER_EXCLUDED, GRID_H, GRID_W, MAPS, reservedRects } from "../src/catalog.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const gd = readFileSync(join(here, "../../scripts/catalog.gd"), "utf8");
@@ -47,4 +47,7 @@ assert.deepEqual(gdBlocks, BLOCKS, "BLOCKS");
 // набор бомб в catalog.gd и в BOMBS на сервере
 const gdBombs = [...gd.matchAll(/"(\w+)":\s*\{[^}]*"kind": "bomb"/g)].map((m) => m[1]);
 assert.deepEqual(gdBombs.sort(), [...BOMBS].sort(), "BOMBS");
+const gdExcluded = gd.match(/const OFFER_EXCLUDED := \[([^\]]*)\]/)[1].match(/\w+/g);
+assert.deepEqual(gdExcluded, OFFER_EXCLUDED, "OFFER_EXCLUDED");
+for (const id of OFFER_EXCLUDED) assert.ok(BLOCKS[id], `OFFER_EXCLUDED: нет блока ${id}`);
 console.log("OK: catalog.gd и catalog.js совпадают (%d блоков)", Object.keys(BLOCKS).length);

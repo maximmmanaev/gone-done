@@ -7,6 +7,7 @@ import worker from "../src/index.js";
 import { makeEnv } from "./fakes.mjs";
 import { BLOCKS, BOMBS, GRID_H, GRID_W, blastZone, canPlace, sizeOf } from "../src/catalog.js";
 import { buildOffer } from "../src/room.js";
+import { OFFER_EXCLUDED, OFFER_IDS } from "../src/catalog.js";
 
 // ---------------------------------------------------------------- клиент-бот
 
@@ -479,7 +480,8 @@ await test("выбор: 4 блока, ядерная бомба всегда, н
     assert.ok(offer.every((t) => BLOCKS[t]), "только известные блоки");
     offer.forEach((t) => seen.add(t));
   }
-  assert.equal(seen.size, Object.keys(BLOCKS).length, "со временем предлагаются все блоки, включая ловушки");
+  assert.equal(seen.size, OFFER_IDS.length, "со временем предлагаются все блоки инвентаря, включая ловушки");
+  for (const t of OFFER_EXCLUDED) assert.ok(!seen.has(t), `«${t}» не из инвентаря оригинала, его не предлагают`);
   const sizes = new Set(Array.from({ length: 200 }, () => buildOffer(2).length));
   assert.deepEqual([...sizes], [4]);
 });

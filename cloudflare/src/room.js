@@ -4,7 +4,7 @@
 // Упрощение для учебного проекта: движением управляют клиенты (серверу доверяем).
 
 import {
-  BLOCK_IDS, BOMBS, OFFER_GUARANTEED, OFFER_MAX_COPIES, OFFER_DEFAULT,
+  BLOCK_IDS, OFFER_IDS, BOMBS, OFFER_GUARANTEED, OFFER_MAX_COPIES, OFFER_DEFAULT,
   MAPS, blastZone, blockRect, canPlace, isValidRot, mark, rectsOverlap, staticOccupied,
 } from "./catalog.js";
 
@@ -611,7 +611,7 @@ export function buildOffer(playerCount, random = Math.random, size = OFFER_DEFAU
   const offer = [...OFFER_GUARANTEED];
   const copies = (type) => offer.filter((t) => t === type).length;
   while (offer.length < count) {
-    const type = BLOCK_IDS[Math.floor(random() * BLOCK_IDS.length)];
+    const type = OFFER_IDS[Math.floor(random() * OFFER_IDS.length)];
     if (copies(type) < OFFER_MAX_COPIES) offer.push(type);
   }
   // перемешиваем, чтобы обязательные блоки не стояли всегда первыми

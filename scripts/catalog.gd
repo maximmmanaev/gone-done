@@ -73,6 +73,9 @@ const PORTED_KINDS := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter",
 	"goal", "sawslide", "sawspin", "spring", "coin", "mover", "shooter", "flame", "pendulum", "crumble", "autodoor", "punch", "hockey", "cannon", "beehive", "pressure", "hydrant", "flipper", "rotator", "lift", "plant"]
 const PORTED_ART := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter", "treadmill", "upblower", "boulder", "blackhole", "goal", "sawslide"]
 
+# Блоки, которых нет в инвентаре оригинала: в выборе их не предлагают (зеркало OFFER_EXCLUDED в cloudflare/src/catalog.js).
+const OFFER_EXCLUDED := ["goal", "boulder", "wind", "toxic", "flamethrower", "crumble", "sawslide", "pillar"]
+
 const BLOCKS := {
 	"plank":  {"name": "Щепка",     "size": Vector2i(3, 1), "kind": "solid",  "color": Color(0.78, 0.59, 0.31)},
 	"box":    {"name": "Коробок",   "size": Vector2i(2, 2), "kind": "solid",  "color": Color(0.80, 0.55, 0.33)},

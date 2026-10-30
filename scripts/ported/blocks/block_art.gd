@@ -14,7 +14,7 @@ const MAP := {
 	"nuke": ["NewBombs-megaBomb", false],
 	"boulder": ["Boulder", false],
 	"box": ["Box-CardboardBox", false],
-	"spikes": ["spike_1", false],
+	"spikes": ["barbwire_2_", true],
 	"teleporter": ["Teleporter-Tele_On", false],
 	"treadmill": ["TreadMill", true],
 	"blackhole": ["blackhole-MainSwhirl", false],
@@ -29,6 +29,10 @@ const MAP := {
 	"hydrant": ["FireHydrant", false],
 	"plant": ["Flower-FlowerPunch", false],
 	"cannon": ["Cannon-CannonWheel", false],
+	"mover": ["HoriMove-Crates", true],
+	"flipper": ["Flipping-FlippingBlock", false],
+	"rotator": ["_static-RotatingTire", false],
+	"upblower": ["HoverFan", false],
 }
 
 static var _sprites: Dictionary = {}
