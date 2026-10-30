@@ -40,6 +40,21 @@ def make_web_app() -> None:
     print("index.html: добавлены манифест, мета-теги веб-приложения и блокировка жестов")
 
 
+def allow_insecure_context() -> None:
+    """Godot отказывается стартовать не по HTTPS («Secure Context»). Для проверки с телефона по http://IP-компьютера
+    эту проверку отключаем: одноплатформенной сборке (без потоков) она не нужна. По HTTPS поведение не меняется."""
+    path = os.path.join(PUBLIC, "index.html")
+    html = open(path, encoding="utf-8").read()
+    old = "const missing = Engine.getMissingFeatures({\n\t\tthreads: GODOT_THREADS_ENABLED,\n\t});"
+    new = old[:-1] + ".filter((m) => !/Secure Context/i.test(m));"
+    if new in html:
+        return
+    if old not in html:
+        sys.exit("В index.html не найдена проверка getMissingFeatures — формат экспорта Godot изменился")
+    open(path, "w", encoding="utf-8").write(html.replace(old, new, 1))
+    print("index.html: проверка Secure Context отключена (работа по http в локальной сети)")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--godot", help="путь к Godot 4.3")
@@ -54,6 +69,7 @@ def main() -> None:
                         os.path.join(PUBLIC, "index.html")], check=True)
 
     make_web_app()
+    allow_insecure_context()
     if not os.path.exists(os.path.join(PUBLIC, "manifest.webmanifest")):
         sys.exit("Нет public/manifest.webmanifest")
 
