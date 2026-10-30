@@ -213,6 +213,9 @@ func _build_goal() -> void:
 func _make_visual(type: String, color: Color, style := "block") -> Node2D:
 	var px := Vector2(Catalog.size_of(type)) * CELL
 	var kind: String = Catalog.BLOCKS[type].kind
+	var original := BlockArt.make(type, px)   # оригинальный спрайт; нет такого — рисуем кодом ниже
+	if original != null:
+		return original
 	if kind == "solid" or kind == "mover":
 		return Art.make_block(type, px, color)
 	if kind == "bomb":
