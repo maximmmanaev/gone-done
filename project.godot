@@ -10,6 +10,7 @@ config/features=PackedStringArray("4.3", "GL Compatibility")
 [autoload]
 
 Net="*res://scripts/net.gd"
+Audio="*res://scripts/audio.gd"
 
 [display]
 
