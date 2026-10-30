@@ -10,7 +10,6 @@ var body_color := Color.WHITE
 var sprint_allowed := true   # правило комнаты «без бега»
 var sprint_on := false       # бег переключается нажатием: нажали — включился, нажали ещё раз — выключился
 var kind := 0
-var insect: Node2D
 
 
 func _ready() -> void:
@@ -23,9 +22,7 @@ func _ready() -> void:
 	shape.shape = rect
 	add_child(shape)
 
-	insect = Art.make_insect(kind, body_color)
-	add_child(insect)
-	_update_pupil()
+	set_skin(SkinLibrary.skin_for_kind(kind))
 
 
 func _physics_process(delta: float) -> void:
@@ -38,9 +35,3 @@ func _physics_process(delta: float) -> void:
 		sprint_on = not sprint_on
 	sprint = sprint_on and sprint_allowed
 	step(delta)
-	_update_pupil()
-
-
-func _update_pupil() -> void:
-	if insect:
-		insect.scale = Vector2(float(facing), 1.0) * Catalog.INSECT_K

@@ -267,12 +267,11 @@ func _build_skin_picker() -> void:
 		chosen.set_corner_radius_all(6)
 		b.add_theme_stylebox_override("pressed", chosen)
 		b.add_theme_stylebox_override("hover_pressed", chosen)
-		var preview := Art.make_insect(i, Catalog.PLAYER_COLORS[i])   # то же рисование, что и в игре
-		preview.position = Vector2(42, 58)
-		preview.scale = Vector2(1.25, 1.25)
+		var preview := SkinLibrary.make_sprite(SkinLibrary.skin_for_kind(i), 0.5)   # тот же спрайт, что и в игре
+		preview.position = Vector2(42, 52)
 		b.add_child(preview)
 		var caption := Label.new()
-		caption.text = Catalog.INSECT_NAMES[i]
+		caption.text = SkinLibrary.skin_for_kind(i)
 		caption.position = Vector2(0, 100)
 		caption.size = Vector2(84, 24)
 		caption.add_theme_font_size_override("font_size", 14)
@@ -300,7 +299,7 @@ func _apply_taken(taken: Array) -> void:
 	for i in skin_buttons.size():
 		skin_buttons[i].visible = not taken.has(i)
 		if taken.has(i):
-			names.append(Catalog.INSECT_NAMES[i])
+			names.append(SkinLibrary.skin_for_kind(i))
 	skin_note.text = "" if names.is_empty() else "Уже заняты: %s" % ", ".join(names)
 	if taken.has(skin):
 		for i in skin_buttons.size():

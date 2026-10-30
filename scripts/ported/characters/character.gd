@@ -342,6 +342,57 @@ func _update_suicide(delta: float) -> void:
 
 # ---------- анимация ----------
 
+var skin_name := SkinLibrary.DEFAULT_SKIN
+var sprite: AnimatedSprite2D
+var sprite_scale := 0.2   # GUESS: кадр 95x164 → ~33 px при коллайдере 14x28.8
+
+
+func set_skin(skin: String) -> void:
+	if not SkinLibrary.has_skin(skin):
+		skin = SkinLibrary.DEFAULT_SKIN
+	skin_name = skin
+	if sprite == null:
+		sprite = AnimatedSprite2D.new()
+		sprite.scale = Vector2.ONE * sprite_scale
+		sprite.position = Vector2(0, 0)
+		add_child(sprite)
+	sprite.sprite_frames = SkinLibrary.frames(skin)
+	sprite.play("idle")
+
+
+func _sprite_anim_name() -> String:
+	match current_anim:
+		AnimState.DIE:
+			return "dead"
+		AnimState.WIN:
+			return "victory"
+		AnimState.SIT:
+			return "crouch"
+		AnimState.SLIDE:
+			return "wall_slide"
+		AnimState.JUMP:
+			return "jump_up" if velocity.y < -40.0 else ("jump_top" if velocity.y < 40.0 else "jump_down")
+		AnimState.LAND:
+			return "land"
+		AnimState.RUN:
+			return "run"
+		AnimState.WALK:
+			return "walk"
+	if secondary_anim == SecondaryAnimState.CROUCH:
+		return "crouch"
+	if secondary_anim == SecondaryAnimState.LOOKUP:
+		return "look_up"
+	return "idle"
+
+
+func _apply_sprite() -> void:
+	if sprite == null or sprite.sprite_frames == null:
+		return
+	var a := _sprite_anim_name()
+	if sprite.animation != a:
+		sprite.play(a)
+	sprite.scale.x = sprite_scale * float(facing)
+
 func _update_anim() -> void:
 	var s := AnimState.IDLE
 	if dead or dying:
@@ -363,6 +414,7 @@ func _update_anim() -> void:
 	if _last_anim != s:
 		_last_anim = s
 		anim_state_changed.emit(s)
+	_apply_sprite()
 
 
 # ---------- жизнь, смерть, финиш ----------

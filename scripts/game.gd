@@ -1062,9 +1062,7 @@ func _ensure_remote(id: int) -> Node2D:
 	if remote_nodes.has(id) and is_instance_valid(remote_nodes[id]):
 		return remote_nodes[id]
 	var n := Node2D.new()
-	var vis := Art.make_insect(_kind_of(id), _color_of(id))
-	vis.scale = Vector2.ONE * Catalog.INSECT_K
-	n.add_child(vis)
+	n.add_child(SkinLibrary.make_sprite(SkinLibrary.skin_for_kind(_kind_of(id)), 0.2))
 	var tag := Label.new()
 	tag.text = _name_of(id)
 	tag.position = Vector2(-50, -Catalog.PLAYER_SIZE.y / 2.0 - 24.0)   # над головой
@@ -1089,7 +1087,12 @@ func _on_peer_moved(id: int, pos: Vector2, vel: Vector2, _flip: bool) -> void:
 		n.visible = true
 	remote_target[id] = pos
 	if absf(vel.x) > 10.0 and n.get_child_count() > 0:
-		n.get_child(0).scale.x = Catalog.INSECT_K * (1.0 if vel.x > 0.0 else -1.0)
+		n.get_child(0).scale.x = 0.2 * (1.0 if vel.x > 0.0 else -1.0)
+	if n.get_child_count() > 0 and n.get_child(0) is AnimatedSprite2D:
+		var sp: AnimatedSprite2D = n.get_child(0)
+		var a := "jump_up" if vel.y < -40.0 else ("jump_down" if vel.y > 40.0 else ("run" if absf(vel.x) > 10.0 else "idle"))
+		if sp.animation != a:
+			sp.play(a)
 
 
 ## Монеты подбираются заново в каждом забеге.
