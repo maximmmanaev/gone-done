@@ -40,6 +40,21 @@ def make_web_app() -> None:
     print("index.html: добавлены манифест, мета-теги веб-приложения и блокировка жестов")
 
 
+def patch_audio_worklet() -> None:
+    """В небезопасном контексте (http по IP) у AudioContext нет audioWorklet, и Godot падает с
+    «Cannot read properties of undefined (reading 'addModule')». Без audioWorklet промис позиции звука просто не завершается."""
+    path = os.path.join(PUBLIC, "index.js")
+    js = open(path, encoding="utf-8").read()
+    old = "GodotAudio.audioPositionWorkletPromise=ctx.audioWorklet.addModule(path)"
+    new = "GodotAudio.audioPositionWorkletPromise=ctx.audioWorklet?ctx.audioWorklet.addModule(path):new Promise(function(){})"
+    if new in js:
+        return
+    if old not in js:
+        sys.exit("В index.js не найден вызов audioWorklet.addModule — формат экспорта Godot изменился")
+    open(path, "w", encoding="utf-8").write(js.replace(old, new, 1))
+    print("index.js: звук не требует audioWorklet (работа по http в локальной сети)")
+
+
 def allow_insecure_context() -> None:
     """Godot отказывается стартовать не по HTTPS («Secure Context»). Для проверки с телефона по http://IP-компьютера
     эту проверку отключаем: одноплатформенной сборке (без потоков) она не нужна. По HTTPS поведение не меняется."""
@@ -70,6 +85,7 @@ def main() -> None:
 
     make_web_app()
     allow_insecure_context()
+    patch_audio_worklet()
     if not os.path.exists(os.path.join(PUBLIC, "manifest.webmanifest")):
         sys.exit("Нет public/manifest.webmanifest")
 
