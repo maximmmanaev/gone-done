@@ -1,58 +1,45 @@
-# Ported from structur/RotateBlock.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из оригинального .cs + логика, написанная вручную (константы в декомпиляции потеряны, помечены GUESS). Конвертер этот файл не трогает.
+## Вращающийся блок: каждые interval поворачивается на degrees со скоростью rotate_speed (по часовой, если clockwise).
 class_name RotateBlock
 extends ActiveBlock
 
-@export var degrees: float
-@export var rotate_speed: float
-@export var interval: float
-@export var center_of_rotation: Vector3
-@export var clockwise: bool
-@export var is_anchor: bool
-@export var spinner: Node2D
-@export var rotation_sound_event: String
-@export var constant_sound: bool
-var rotate_time: float
-var rotate_amt: float
-@export var real: bool
-@export var placement_indicator_initial_scale: float
-@export var counter_rotate_holder: Node2D
-var sound_timer: float
-@export var sound_timer_interval: float
-var rb: RigidBody2D
-var rb_spinner: RigidBody2D
+@export var degrees: float = 90.0         # C# Degrees (значение GUESS)
+@export var rotate_speed: float = 120.0   # C# RotateSpeed (GUESS), градусов в секунду
+@export var interval: float = 2.0         # C# Interval (GUESS)
+@export var clockwise := true             # C# Clockwise = true
+var rotate_amt := 0.0
+var rotate_time := 0.0
+var _turning := false
+var _wait := 0.0
+var body: AnimatableBody2D
 
-func _enter_tree() -> void:  # C# Awake
-	pass
 
-func _ready() -> void:  # C# Start
-	pass
+func setup_body(b: AnimatableBody2D) -> void:
+	body = b
+	body.sync_to_physics = true
 
-func act(delta_time: float) -> void:  # C# Act
-	pass
 
-func enable_placement(show_guides: bool) -> void:  # C# EnablePlacement
-	pass
+func act(delta: float) -> void:
+	if body == null:
+		return
+	if not _turning:
+		_wait += delta
+		if _wait >= interval:
+			_wait = 0.0
+			_turning = true
+			rotate_amt = 0.0
+		return
+	var step := minf(rotate_speed * delta, degrees - rotate_amt)
+	rotate_amt += step
+	body.rotation_degrees += step if clockwise else -step
+	if rotate_amt >= degrees - 0.001:
+		_turning = false
 
-func disable_0() -> void:  # C# Disable
-	pass
 
-func enable_0() -> void:  # C# Enable
-	pass
-
-func activate_0() -> void:  # C# Activate
-	pass
-
-func place_1(player_number: int) -> void:  # C# Place
-	pass
-
-func flip(sprint: bool) -> void:  # C# Flip
-	pass
-
-func update_placement_guides() -> void:  # C# UpdatePlacementGuides
-	pass
-
-func get_physics_modifier() -> Array:  # C# GetPhysicsModifier
-	return []
-
-func get_physics_modifiers() -> Array:  # C# GetPhysicsModifiers
-	return []
+func reset_play_state() -> void:
+	_turning = false
+	_wait = 0.0
+	rotate_amt = 0.0
+	if body != null:
+		body.rotation = 0.0
+	super()

@@ -70,7 +70,7 @@ const PLAYER_COLORS := [
 # (0 — вверх, 1 — вправо, 2 — вниз, 3 — влево), убивает того, кого коснётся; очки за такую смерть получает хозяин ловушки.
 # Логику всех этих блоков ведут классы из scripts/ported; PORTED_ART — те, чьи картинки рисует Art.PortedDraw (остальные — старые рисунки).
 const PORTED_KINDS := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter", "treadmill", "upblower", "boulder", "blackhole",
-	"goal", "sawslide", "sawspin", "spring", "coin", "mover", "shooter", "flame", "pendulum", "crumble", "autodoor", "punch", "hockey", "cannon", "beehive"]
+	"goal", "sawslide", "sawspin", "spring", "coin", "mover", "shooter", "flame", "pendulum", "crumble", "autodoor", "punch", "hockey", "cannon", "beehive", "pressure", "hydrant", "flipper", "rotator", "lift", "plant"]
 const PORTED_ART := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter", "treadmill", "upblower", "boulder", "blackhole", "goal", "sawslide"]
 
 const BLOCKS := {
@@ -108,6 +108,12 @@ const BLOCKS := {
 	"hockey": {"name": "Хоккеист", "size": Vector2i(1, 1), "kind": "hockey", "color": Color(0.30, 0.45, 0.75)},
 	"cannon": {"name": "Пушка", "size": Vector2i(2, 2), "kind": "cannon", "color": Color(0.38, 0.40, 0.46)},
 	"beehive": {"name": "Улей", "size": Vector2i(2, 2), "kind": "beehive", "color": Color(0.90, 0.72, 0.20)},
+	"pressure": {"name": "Нажимная плита", "size": Vector2i(2, 1), "kind": "pressure", "color": Color(0.62, 0.62, 0.66)},
+	"hydrant": {"name": "Гидрант", "size": Vector2i(1, 1), "kind": "hydrant", "color": Color(0.85, 0.20, 0.20)},
+	"flipper": {"name": "Переворотник", "size": Vector2i(2, 1), "kind": "flipper", "color": Color(0.45, 0.62, 0.78)},
+	"rotator": {"name": "Вертушка", "size": Vector2i(3, 1), "kind": "rotator", "color": Color(0.70, 0.50, 0.30)},
+	"lift":   {"name": "Подъёмник", "size": Vector2i(2, 1), "kind": "lift", "color": Color(0.55, 0.45, 0.35)},
+	"plant":  {"name": "Цветок-боец", "size": Vector2i(1, 1), "kind": "plant", "color": Color(0.85, 0.40, 0.70)},
 	"goal":   {"name": "Флаг",      "size": Vector2i(1, 2), "kind": "goal",   "color": Color(0.85, 0.20, 0.20)},
 	"sawslide": {"name": "Пила-бегунок", "size": Vector2i(3, 1), "kind": "sawslide", "color": Color(0.72, 0.72, 0.78)},
 	"wind":   {"name": "Ветер",     "size": Vector2i(3, 3), "kind": "wind",   "color": Color(0.70, 0.88, 0.95)},

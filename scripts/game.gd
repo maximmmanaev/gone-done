@@ -216,7 +216,7 @@ func _make_visual(type: String, color: Color, style := "block") -> Node2D:
 	var original := BlockArt.make(type, px)   # оригинальный спрайт; нет такого — рисуем кодом ниже
 	if original != null:
 		return original
-	if kind == "solid" or kind == "mover" or kind == "crumble" or kind == "autodoor" or kind == "punch" or kind == "hockey":
+	if kind == "solid" or kind == "mover" or kind == "crumble" or kind == "autodoor" or kind == "punch" or kind == "hockey" or kind == "flipper" or kind == "rotator" or kind == "lift":
 		return Art.make_block(type, px, color)
 	if kind == "bomb":
 		return Art.make_bomb(type, px, color)
@@ -366,6 +366,71 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			bh.birth_time = 1.5 + float(uid % 3) * 0.5
 			node.add_child(bh)
 			logic = bh
+		"pressure":         # нажимная плита: наступил — выскакивают шипы
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_make_visual(type, color))
+			var ps := PressureTriggerSpikes.new()
+			node.add_child(ps)
+			ps.setup_zone(Vector2(size.x - 2.0, size.y + 6.0), Vector2(0, -3.0))
+			logic = ps
+		"hydrant":          # гидрант: периодический столб воды несёт вверх
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_make_visual(type, color))
+			var fh := FireHydrant.new()
+			fh.interval = 2.5 + float(uid % 3) * 0.5
+			var geyser := Node2D.new()
+			geyser.position = Vector2(0, -size.y / 2.0)
+			var water := ColorRect.new()
+			water.color = Color(0.45, 0.75, 1.0, 0.55)
+			water.size = Vector2(size.x * 0.7, fh.rise_height)
+			water.position = Vector2(-water.size.x / 2.0, -fh.rise_height)
+			geyser.add_child(water)
+			node.add_child(geyser)
+			node.add_child(fh)
+			fh.geyser_visual = geyser
+			fh.setup_geyser(size)
+			logic = fh
+		"flipper":          # переворотник: то безопасная платформа, то шипами вверх
+			var body := StaticBody2D.new()
+			_fill_body(body, rect, color, type, 0, rot)
+			var fb := FlippingBlock.new()
+			fb.interval = 2.0 + float(uid % 3) * 0.5
+			body.add_child(fb)
+			fb.setup_body(body, size)
+			logic = fb
+			node = body
+		"rotator":          # вертушка: поворачивается на 90° с паузами; физика сама возит игрока
+			var body := AnimatableBody2D.new()
+			_fill_body(body, rect, color, type, 0, rot)
+			var rb := RotateBlock.new()
+			body.add_child(rb)
+			rb.setup_body(body)
+			logic = rb
+			node = body
+		"lift":             # подъёмник: встал — поехал вверх
+			var body := AnimatableBody2D.new()
+			_fill_body(body, rect, color, type, 0, rot)
+			var dw := DumbWaiter.new()
+			dw.move_distance = CELL * 6.0
+			body.add_child(dw)
+			dw.setup_body(body, size)
+			logic = dw
+			node = body
+		"plant":            # цветок-боец: заметил игрока впереди — бьёт и отбрасывает
+			node = Node2D.new()
+			node.position = center
+			var vis := _make_visual(type, color)
+			node.add_child(_rotated(vis, rot))
+			var pp := PunchingPlant.new()
+			pp.dir = dir
+			pp.set_visual(vis)
+			node.add_child(pp)
+			var reach := CELL * 3.0
+			var zs := Vector2(CELL + 8.0, reach) if dir.x == 0.0 else Vector2(reach, CELL + 8.0)
+			pp.setup_zone(zs, dir * (size.x / 2.0 + reach / 2.0 if dir.x != 0.0 else size.y / 2.0 + reach / 2.0))
+			logic = pp
 		"treadmill":        # платформа-конвейер: несёт того, кто стоит или прижат к ней
 			var body := StaticBody2D.new()
 			_fill_body(body, rect, color, type, 0, rot)

@@ -1,47 +1,46 @@
-# Ported from structur/DumbWaiter.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из оригинального .cs + логика, написанная вручную (константы в декомпиляции потеряны, помечены GUESS). Конвертер этот файл не трогает.
+## Подъёмник: когда на него встали, через net_movement_delay едет вверх на move_distance и остаётся наверху.
 class_name DumbWaiter
 extends ActiveBlock
 
-@export var animator: AnimationPlayer
-@export var motor_animator: AnimationPlayer
-var last_position: Vector2
-var velocity: Vector2
-var last_velocity: Vector2
-@export var movement_activated: bool
-@export var net_movement_delay: float
+@export var net_movement_delay: float = 0.5   # C# netMovementDelay = 0.5f
+@export var move_distance: float = 96.0       # GUESS
+@export var move_speed: float = 55.0          # GUESS
+var movement_activated := false
+var _delay := 0.0
+var _moved := 0.0
+var body: AnimatableBody2D
+var _start := Vector2.ZERO
 
-func _ready() -> void:  # C# Start
-	pass
 
-func _process(delta: float) -> void:  # C# Update
-	pass
+func setup_body(b: AnimatableBody2D, size: Vector2) -> void:
+	body = b
+	body.sync_to_physics = true
+	_start = b.position
+	setup_zone(Vector2(size.x - 2.0, 6.0), Vector2(0, -size.y / 2.0 - 3.0))
 
-func go() -> void:  # C# Go
-	pass
 
-func start_movement() -> void:  # C# StartMovement
-	pass
+func act(delta: float) -> void:
+	if body == null:
+		return
+	if not movement_activated:
+		for c: Character in zone_characters:
+			if is_instance_valid(c) and not c.dead and not c.dying and not c.is_ghost:
+				movement_activated = true
+				_delay = 0.0
+		return
+	_delay += delta
+	if _delay < net_movement_delay or _moved >= move_distance:
+		return
+	var step := minf(move_speed * delta, move_distance - _moved)
+	_moved += step
+	body.position.y -= step
 
-func delay_start_animator(time: float):  # C# DelayStartAnimator (coroutine)
-	pass
 
-func movement_done() -> void:  # C# MovementDone
-	pass
-
-func act(delta_time: float) -> void:  # C# Act
-	pass
-
-func pause_0() -> void:  # C# Pause
-	pass
-
-func unpause_0() -> void:  # C# Unpause
-	pass
-
-func get_physics_modifiers() -> Array:  # C# GetPhysicsModifiers
-	return []
-
-func get_physics_modifier() -> Array:  # C# GetPhysicsModifier
-	return []
-
-func handle_event(e) -> void:  # C# handleEvent
-	pass
+func reset_play_state() -> void:
+	movement_activated = false
+	_delay = 0.0
+	_moved = 0.0
+	if body != null:
+		body.position = _start
+	super()

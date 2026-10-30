@@ -25,6 +25,9 @@ const MAP := {
 	"punchglove": ["BoxingGlove-BoxingGlove", false],
 	"hockeypuck": ["HockeyShooter-HockeyPuck", false],
 	"beehive": ["Beehive-Beehive", false],
+	"pressure": ["PressureTrigger-PressureTriggerSpikes", false],
+	"hydrant": ["FireHydrant", false],
+	"plant": ["Flower-FlowerPunch", false],
 	"cannon": ["Cannon-CannonWheel", false],
 }
 
