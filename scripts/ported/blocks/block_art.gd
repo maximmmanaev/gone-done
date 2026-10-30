@@ -21,6 +21,8 @@ const MAP := {
 	"ice": ["_static-Ice", true],
 	"honey": ["_static-Honey", true],
 	"toxic": ["Toxic_Water_Pool", true],
+	"autodoor": ["Autodoor", false],
+	"punchglove": ["BoxingGlove-BoxingGlove", false],
 }
 
 static var _sprites: Dictionary = {}

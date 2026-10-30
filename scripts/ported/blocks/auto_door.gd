@@ -1,88 +1,62 @@
-# Ported from structur/AutoDoor.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из AutoDoor.cs + логика, написанная вручную (константы в декомпиляции потеряны, помечены GUESS). Конвертер этот файл не трогает.
+## Автодверь: по таймеру (режим timed) открывается и закрывается; закрывшись на персонаже, убивает его через door_hazard_delay.
 class_name AutoDoor
 extends ActiveBlock
 
-@export var door_collider: CollisionShape2D
-var door_collider_cmc: CheckColliding
-@export var door_animator: AnimationPlayer
-@export var interval: float
-var timer: float
-var open: bool
-var real: bool
-var collider_enabled: bool
-@export var push_out_point_left: Node2D
-@export var timed: bool
-var movement_detector: CheckColliding
-@export var beam_art_sprite_index: int
-@export var door_hazard: CollisionShape2D
-@export var door_hazard_delay: float
-var door_hazard_enabled: bool
+@export var interval: float = 2.0            # GUESS
+@export var door_hazard_delay: float = 0.2   # C# DoorHazardDelay (значение GUESS)
+@export var timed := true                    # C# timed; режим «по движению» не переносился
+var timer := 0.0
+var open := false
+var hazard_timer := 0.0
+var trapped: Array = []   # кто был в проёме, когда дверь закрылась (физика выталкивает их из зоны, но опасность остаётся)
+var body: StaticBody2D
+var collider: CollisionShape2D
+var _visual_alpha := 1.0
 
-func _ready() -> void:  # C# Start
-	pass
 
-func act(delta_time: float) -> void:  # C# Act
-	pass
+func setup_body(b: StaticBody2D, size: Vector2) -> void:
+	body = b
+	for ch in b.get_children():
+		if ch is CollisionShape2D:
+			collider = ch
+	# зона чуть меньше двери: в ней оказывается только тот, на ком дверь закрылась
+	setup_zone(size - Vector2(4, 4))
 
-func update_character_detection(delta_time: float) -> void:  # C# UpdateCharacterDetection
-	pass
 
-func on_detected_characters_updated() -> void:  # C# OnDetectedCharactersUpdated
-	pass
+func _set_open(value: bool) -> void:
+	open = value
+	hazard_timer = 0.0
+	trapped = [] if value else zone_characters.filter(func(c): return is_instance_valid(c))
+	if collider != null:
+		collider.set_deferred("disabled", value)
+	if body != null:
+		body.modulate.a = 0.25 if value else 1.0
 
-func has_any_characters() -> bool:  # C# HasAnyCharacters
-	return false
 
-func has_moving_character() -> bool:  # C# HasMovingCharacter
-	return false
+func act(delta: float) -> void:
+	if timed:
+		timer += delta
+		if timer >= interval:
+			timer -= interval
+			_set_open(not open)
+	if open:
+		return
+	trapped = trapped.filter(func(c): return is_instance_valid(c) and not c.dead and not c.dying)
+	if trapped.is_empty():
+		hazard_timer = 0.0
+		return
+	hazard_timer += delta
+	if hazard_timer >= door_hazard_delay:
+		for c: Character in trapped:
+			c.kill_character("door", self)
+		trapped = []
 
-func on_triggered_by_network() -> void:  # C# OnTriggeredByNetwork
-	pass
 
-func on_triggered() -> void:  # C# OnTriggered
-	pass
-
-func play_open_sound() -> void:  # C# PlayOpenSound
-	pass
-
-func play_close_sound() -> void:  # C# PlayCloseSound
-	pass
-
-func disable_0() -> void:  # C# Disable
-	pass
-
-func enable_0() -> void:  # C# Enable
-	pass
-
-func enable_door_collider() -> void:  # C# enableDoorCollider
-	pass
-
-func disable_door_collider() -> void:  # C# disableDoorCollider
-	pass
-
-func set_door_collider_enabled(val: bool) -> void:  # C# SetDoorColliderEnabled
-	pass
-
-func delay_door_hazard():  # C# delayDoorHazard (coroutine)
-	pass
-
-func push_out_characters() -> void:  # C# PushOutCharacters
-	pass
-
-func push_out_character(chr: Character) -> void:  # C# PushOutCharacter
-	pass
-
-func on_draw_gizmos() -> void:  # C# OnDrawGizmos
-	pass
-
-func on_projectile_touched_trigger_0() -> void:  # C# OnProjectileTouchedTrigger
-	pass
-
-func pause_0() -> void:  # C# Pause
-	pass
-
-func unpause_0() -> void:  # C# Unpause
-	pass
-
-func tint() -> void:  # C# Tint
-	pass
+func reset_play_state() -> void:
+	timer = 0.0
+	_set_open(false)
+	trapped = []
+	if collider != null:
+		collider.disabled = false
+	super()

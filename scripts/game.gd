@@ -216,7 +216,7 @@ func _make_visual(type: String, color: Color, style := "block") -> Node2D:
 	var original := BlockArt.make(type, px)   # оригинальный спрайт; нет такого — рисуем кодом ниже
 	if original != null:
 		return original
-	if kind == "solid" or kind == "mover":
+	if kind == "solid" or kind == "mover" or kind == "crumble" or kind == "autodoor" or kind == "punch":
 		return Art.make_block(type, px, color)
 	if kind == "bomb":
 		return Art.make_bomb(type, px, color)
@@ -298,6 +298,45 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			logic = Ice.new() if kind == "ice" else Honey.new()
 			body.add_child(logic)
 			logic.setup_zone(Vector2(size.x, 6), Vector2(0, -size.y / 2.0 - 3.0))
+			node = body
+		"crumble":          # хрупкий блок: рушится, если на нём постоять
+			var body := StaticBody2D.new()
+			_fill_body(body, rect, color, type, 0, rot)
+			var cb := CrumblingBlock.new()
+			body.add_child(cb)
+			cb.setup_body(body, size)
+			logic = cb
+			node = body
+		"autodoor":         # автодверь: открывается и закрывается по таймеру, закрывшись на игроке — убивает
+			var body := StaticBody2D.new()
+			_fill_body(body, rect, color, type, 0, rot)
+			var door := AutoDoor.new()
+			door.interval = 2.0 + float(uid % 3) * 0.5
+			body.add_child(door)
+			door.setup_body(body, size)
+			logic = door
+			node = body
+		"punch":            # боксёр: наступил на верх — перчатка отбрасывает стоящего впереди
+			var body := StaticBody2D.new()
+			_fill_body(body, rect, color, type, 0, rot)
+			var pb := PunchingBlock.new()
+			pb.dir = Vector2.RIGHT.rotated(rot * PI / 2.0)
+			body.add_child(pb)
+			pb.setup_body(body, size)
+			var glove: Node2D = BlockArt.make("punchglove", Vector2(CELL, CELL))
+			if glove == null:
+				var fist := ColorRect.new()
+				fist.color = Color(0.9, 0.2, 0.2)
+				fist.size = Vector2(CELL * 0.8, CELL * 0.8)
+				fist.position = -fist.size / 2.0
+				glove = Node2D.new()
+				glove.add_child(fist)
+			glove.rotation = pb.dir.angle()
+			pb.glove_base = pb.dir * ((size.x if pb.dir.x != 0.0 else size.y) / 2.0 + CELL * 0.4)
+			glove.position = pb.glove_base
+			body.add_child(glove)
+			pb.glove = glove
+			logic = pb
 			node = body
 		"treadmill":        # платформа-конвейер: несёт того, кто стоит или прижат к ней
 			var body := StaticBody2D.new()

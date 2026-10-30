@@ -1,48 +1,97 @@
-# Ported from structur/PunchingBlock.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из PunchingBlock.cs + логика, написанная вручную (константы в декомпиляции потеряны, помечены GUESS). Конвертер этот файл не трогает.
+## Боксирующий блок: кто наступил на верх (триггер), того, кто стоит перед перчаткой, она отбрасывает; не убивает.
 class_name PunchingBlock
 extends ActiveBlock
 
-@export var glove_animator: AnimationPlayer
-var triggers: Array
-var trigger_touched: bool
+const PROJECTILE_GRACE_TIME: float = 0.5   # C# projectileGraceTime
+@export var punch_strength: float = 330.0  # GUESS
+@export var punch_lift: float = 90.0       # GUESS: небольшой подброс
+@export var punch_time: float = 0.25       # GUESS
+@export var cooldown: float = 0.6          # GUESS
+@export var reach: float = 14.0            # GUESS: на сколько выезжает перчатка
+var dir := Vector2.RIGHT
 var punching: bool
-const PROJECTILE_GRACE_TIME: float = 0.5
-var projectile_grace_timer: float
-@export var pusher_collider: CollisionShape2D
-@export var projectile_collider: CollisionShape2D
+var trigger_touched: bool
+var projectile_grace_timer := 0.0
+var body: StaticBody2D
+var glove: Node2D
+var glove_base := Vector2.ZERO
+var push_area: Area2D
+var _t := 0.0
+var _cool := 0.0
+var _pushed: Array = []
 
-func on_trigger_touched() -> void:  # C# OnTriggerTouched
-	pass
 
-func act(delta_time: float) -> void:  # C# Act
-	pass
+func setup_body(b: StaticBody2D, size: Vector2) -> void:
+	body = b
+	setup_zone(Vector2(size.x - 2.0, 6.0), Vector2(0, -size.y / 2.0 - 3.0))   # кнопка на верхней грани
+	var half := size.x / 2.0 if dir.x != 0.0 else size.y / 2.0
+	push_area = Area2D.new()
+	push_area.collision_layer = 0
+	push_area.collision_mask = PLAYER_LAYER
+	push_area.monitorable = false
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = Vector2(reach + 10.0, size.y + 8.0) if dir.x != 0.0 else Vector2(size.x + 8.0, reach + 10.0)
+	shape.shape = rect
+	shape.position = dir * (half + (reach + 10.0) / 2.0)
+	push_area.add_child(shape)
+	add_child(push_area)
 
-func punch(locally_triggered: bool) -> void:  # C# Punch
-	pass
 
-func on_punch_anim_finished() -> void:  # C# OnPunchAnimFinished
-	pass
+func on_trigger_touched() -> void:   # C# OnTriggerTouched
+	trigger_touched = true
 
-func enable_hazard() -> void:  # C# EnableHazard
-	pass
 
-func disable_hazard() -> void:  # C# DisableHazard
-	pass
+func act(delta: float) -> void:
+	_cool = maxf(_cool - delta, 0.0)
+	projectile_grace_timer = maxf(projectile_grace_timer - delta, 0.0)
+	var stepped := false
+	for c: Character in zone_characters:
+		if is_instance_valid(c) and not c.dead and not c.dying and not c.is_ghost:
+			stepped = true
+	if stepped:
+		on_trigger_touched()
+	if trigger_touched and not punching and _cool <= 0.0:
+		punch(true)
+	trigger_touched = false
+	if not punching:
+		return
+	_t += delta
+	if glove != null:
+		glove.position = glove_base + dir * reach * sin(clampf(_t / punch_time, 0.0, 1.0) * PI)
+	if _t >= 0.1 * punch_time:   # удар приходится на начало выезда
+		_push()
+	if _t >= punch_time:
+		punching = false
+		_cool = cooldown
+		_pushed.clear()
+		if glove != null:
+			glove.position = glove_base
 
-func get_hit_trigger_mask() -> int:  # C# GetHitTriggerMask
-	return 0
 
-func animate_masked_triggers(mask: int) -> void:  # C# AnimateMaskedTriggers
-	pass
+func punch(_locally_triggered: bool) -> void:   # C# Punch
+	punching = true
+	_t = 0.0
+	projectile_grace_timer = PROJECTILE_GRACE_TIME
+	_pushed.clear()
 
-func on_projectile_touched_trigger_1(trigger: PunchingBlockTrigger) -> void:  # C# OnProjectileTouchedTrigger
-	pass
 
-func process_trigger_message(msg: MsgPunchingBlockTriggered) -> void:  # C# ProcessTriggerMessage
-	pass
+func _push() -> void:
+	if push_area == null:
+		return
+	for b in push_area.get_overlapping_bodies():
+		if b is Character and not _pushed.has(b) and not b.dead and not b.dying:
+			_pushed.append(b)
+			b.add_impulse(dir * punch_strength + Vector2(0, -punch_lift))
 
-func pause_0() -> void:  # C# Pause
-	pass
 
-func unpause_0() -> void:  # C# Unpause
-	pass
+func reset_play_state() -> void:
+	punching = false
+	trigger_touched = false
+	_t = 0.0
+	_cool = 0.0
+	_pushed.clear()
+	if glove != null:
+		glove.position = glove_base
+	super()
