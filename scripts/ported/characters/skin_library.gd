@@ -22,9 +22,17 @@ const ANIMS := {
 	"victory": ["Victory", true, ["Idle"]],
 }
 
+## Проверка наличия файла; подменяется в тестах (в чистом клоне без импортированных спрайтов файлов нет).
+static var exists_fn: Callable = func(path): return ResourceLoader.exists(path)
 static var _skins: PackedStringArray = PackedStringArray()
 static var _groups: Dictionary = {}
 static var _cache: Dictionary = {}
+
+
+static func reset() -> void:
+	_skins = PackedStringArray()
+	_groups = {}
+	_cache = {}
 
 
 static func _load() -> void:
@@ -50,11 +58,12 @@ static func _load() -> void:
 				if not by_skin.has(skin):
 					by_skin[skin] = {}
 				by_skin[skin][s.substr(i + 1)] = sprites[g]
+				break
 	var names: Array = []
 	for skin in by_skin:
 		var ok := true
 		for r in REQUIRED:
-			ok = ok and by_skin[skin].has(r)
+			ok = ok and by_skin[skin].has(r) and not by_skin[skin][r].is_empty() and exists_fn.call(by_skin[skin][r][0])
 		if ok:
 			names.append(skin)
 	names.sort_custom(func(a, b): return a == DEFAULT_SKIN or (b != DEFAULT_SKIN and a < b))
@@ -92,7 +101,7 @@ static func frames(skin: String) -> SpriteFrames:
 		sf.set_animation_speed(anim, FPS)
 		sf.set_animation_loop(anim, spec[1])
 		for p in paths:
-			var tex: Texture2D = load(p) if ResourceLoader.exists(p) else null
+			var tex: Texture2D = load(p) if exists_fn.call(p) else null
 			if tex != null:
 				sf.add_frame(anim, tex)
 	_cache[skin] = sf
