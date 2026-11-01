@@ -1,5 +1,5 @@
 import re, sys, os
-ROOT = "/Users/ganzoliki/Gone-Done/gone-done/scripts/ported/"
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts", "ported") + os.sep
 HEADER = "# Каркас из structur/{src}.cs + логика, написанная вручную (в Il2Cpp-дампе тел методов нет). Конвертер этот файл не трогает."
 
 def find_func(lines, name):
