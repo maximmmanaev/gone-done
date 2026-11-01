@@ -251,7 +251,7 @@ class BlockDraw extends Node2D:
 	func _draw() -> void:
 		var rect := Rect2(-size / 2.0, size)
 		var dark := Art.darker(color, 0.62)
-		match type:
+		match "plank" if type.begins_with("plank") else type:
 			"plank":   # щепка: потёртая доска с прожилками, сучком, гвоздями, мхом сверху
 				Art.rect_shape(self, rect, color, 3.0)
 				for i in 3:

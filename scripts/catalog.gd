@@ -117,6 +117,29 @@ const BLOCKS := {
 	"rotator": {"name": "Вертушка", "size": Vector2i(3, 1), "kind": "rotator", "color": Color(0.70, 0.50, 0.30)},
 	"lift":   {"name": "Подъёмник", "size": Vector2i(2, 1), "kind": "lift", "color": Color(0.55, 0.45, 0.35)},
 	"plant":  {"name": "Цветок-боец", "size": Vector2i(1, 1), "kind": "plant", "color": Color(0.85, 0.40, 0.70)},
+	# Предметы инвентаря оригинала. Составные («cells» — клетки формы относительно угла блока) занимают на сетке и на сервере весь прямоугольник,
+	# а твёрдыми и рисуются только своими клетками. Размеры на глаз по скриншотам инвентаря (GUESS).
+	"plank2": {"name": "Щепка 2", "size": Vector2i(2, 1), "kind": "solid", "color": Color(0.80, 0.55, 0.33)},
+	"plank4": {"name": "Щепка 4", "size": Vector2i(4, 1), "kind": "solid", "color": Color(0.72, 0.50, 0.30)},
+	"plank5": {"name": "Щепка 5", "size": Vector2i(5, 1), "kind": "solid", "color": Color(0.82, 0.62, 0.38)},
+	"plank6": {"name": "Щепка 6", "size": Vector2i(6, 1), "kind": "solid", "color": Color(0.68, 0.48, 0.30)},
+	"haybale": {"name": "Сено", "size": Vector2i(3, 3), "kind": "solid", "color": Color(0.95, 0.85, 0.20)},
+	"barrel": {"name": "Бочка", "size": Vector2i(2, 2), "kind": "solid", "color": Color(0.35, 0.45, 0.55)},
+	"stairs": {"name": "Лестница", "size": Vector2i(3, 3), "kind": "solid", "color": Color(0.80, 0.60, 0.35),
+		"cells": [Rect2i(0, 2, 3, 1), Rect2i(1, 1, 2, 1), Rect2i(2, 0, 1, 1)]},
+	"girder": {"name": "Балка", "size": Vector2i(4, 4), "kind": "solid", "color": Color(0.60, 0.60, 0.64),
+		"cells": [Rect2i(0, 0, 4, 1), Rect2i(3, 1, 1, 3)]},
+	"stone_l": {"name": "Камень Г", "size": Vector2i(3, 3), "kind": "solid", "color": Color(0.68, 0.68, 0.70),
+		"cells": [Rect2i(0, 0, 3, 1), Rect2i(0, 1, 1, 2)]},
+	"stone_s": {"name": "Камень S", "size": Vector2i(3, 2), "kind": "solid", "color": Color(0.68, 0.68, 0.70),
+		"cells": [Rect2i(1, 0, 2, 1), Rect2i(0, 1, 2, 1)]},
+	"stone_sq": {"name": "Камень", "size": Vector2i(2, 2), "kind": "solid", "color": Color(0.68, 0.68, 0.70)},
+	"stone_cube": {"name": "Кубик", "size": Vector2i(1, 1), "kind": "solid", "color": Color(0.68, 0.68, 0.70)},
+	"spikyball": {"name": "Колючий шар", "size": Vector2i(1, 1), "kind": "hazard", "color": Color(0.70, 0.70, 0.74)},
+	"spikes1": {"name": "Колючка 1", "size": Vector2i(1, 1), "kind": "hazard", "color": Color(0.60, 0.25, 0.66)},
+	"spikes3": {"name": "Колючка 3", "size": Vector2i(3, 1), "kind": "hazard", "color": Color(0.60, 0.25, 0.66)},
+	"ice2":   {"name": "Лёд 2",     "size": Vector2i(2, 1), "kind": "ice",    "color": Color(0.62, 0.86, 0.96)},
+	"ice1":   {"name": "Лёд 1",     "size": Vector2i(1, 1), "kind": "ice",    "color": Color(0.62, 0.86, 0.96)},
 	"goal":   {"name": "Флаг",      "size": Vector2i(1, 2), "kind": "goal",   "color": Color(0.85, 0.20, 0.20)},
 	"sawslide": {"name": "Пила-бегунок", "size": Vector2i(3, 1), "kind": "sawslide", "color": Color(0.72, 0.72, 0.78)},
 	"wind":   {"name": "Ветер",     "size": Vector2i(3, 3), "kind": "wind",   "color": Color(0.70, 0.88, 0.95)},
@@ -151,6 +174,20 @@ static func _mark_rect(d: Dictionary, r: Rect2i) -> void:
 	for x in range(r.position.x, r.position.x + r.size.x):
 		for y in range(r.position.y, r.position.y + r.size.y):
 			d[Vector2i(x, y)] = true
+
+
+## Клетки формы блока (прямоугольники относительно угла) с учётом поворота rot; у обычного блока — один прямоугольник на весь блок.
+static func cells_of(type: String, rot := 0) -> Array:
+	var base: Vector2i = BLOCKS[type]["size"]
+	var rects: Array = BLOCKS[type].get("cells", [Rect2i(Vector2i.ZERO, base)])
+	var frame := base
+	for i in posmod(rot, 4):
+		var turned := []
+		for r in rects:
+			turned.append(Rect2i(frame.y - r.position.y - r.size.y, r.position.x, r.size.y, r.size.x))
+		rects = turned
+		frame = Vector2i(frame.y, frame.x)
+	return rects
 
 
 static func block_cells(type: String, origin: Vector2i, rot := 0) -> Array:

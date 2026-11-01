@@ -172,11 +172,14 @@ func _on_hazard_zone(body: Node) -> void:
 func _fill_body(body: PhysicsBody2D, rect: Rect2i, color: Color, art := "", art_seed := 0, rot := 0) -> void:
 	var size := Vector2(rect.size) * CELL
 	body.position = Vector2(rect.position) * CELL + size / 2.0
-	var shape := CollisionShape2D.new()
-	var rs := RectangleShape2D.new()
-	rs.size = size
-	shape.shape = rs
-	body.add_child(shape)
+	var cells: Array = Catalog.cells_of(art, rot) if art != "" and art != "ground" and Catalog.BLOCKS.has(art) else [Rect2i(Vector2i.ZERO, rect.size)]
+	for c in cells:
+		var shape := CollisionShape2D.new()
+		var rs := RectangleShape2D.new()
+		rs.size = Vector2(c.size) * CELL
+		shape.shape = rs
+		shape.position = Vector2(c.position) * CELL + rs.size / 2.0 - size / 2.0
+		body.add_child(shape)
 	if art == "ground":
 		pass    # земля уровня нарисована на фоне, тут только коллайдер
 	elif art != "":
@@ -216,6 +219,13 @@ func _make_visual(type: String, color: Color, style := "block") -> Node2D:
 	var original := BlockArt.make(type, px)   # оригинальный спрайт; нет такого — рисуем кодом ниже
 	if original != null:
 		return original
+	if Catalog.BLOCKS[type].has("cells"):   # составная форма: каждая клетка рисуется своим куском
+		var shape := Node2D.new()
+		for c in Catalog.BLOCKS[type].cells:
+			var part := Art.make_block(type, Vector2(c.size) * CELL, color)
+			part.position = (Vector2(c.position) + Vector2(c.size) / 2.0) * CELL - px / 2.0
+			shape.add_child(part)
+		return shape
 	if kind == "solid" or kind == "mover" or kind == "crumble" or kind == "autodoor" or kind == "punch" or kind == "hockey" or kind == "flipper" or kind == "rotator" or kind == "lift":
 		return Art.make_block(type, px, color)
 	if kind == "bomb":
