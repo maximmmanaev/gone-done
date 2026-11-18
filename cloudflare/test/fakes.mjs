@@ -47,6 +47,7 @@ globalThis.WebSocketPair = class {
 globalThis.Response = class FakeResponse {
   constructor(body, init = {}) {
     this.body = body; this.status = init.status ?? 200; this.webSocket = init.webSocket ?? null;
+    this.headers = new Headers(init.headers);
   }
 };
 

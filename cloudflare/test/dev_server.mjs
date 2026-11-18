@@ -30,8 +30,19 @@ const make = (handler) => useTls
   ? https.createServer({ cert: fs.readFileSync(certFile), key: fs.readFileSync(keyFile) }, handler)
   : http.createServer(handler);
 
-const server = make((req, res) => {
+const server = make(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
+  if (url.pathname === "/skins") {
+    try {
+      const response = await worker.fetch(new Request(url), env, ctx);
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      return res.end(response.body);
+    } catch (error) {
+      console.error("Ошибка GET /skins:", error);
+      res.writeHead(500);
+      return res.end("Не удалось узнать занятые скины");
+    }
+  }
   if (url.pathname === "/index.wasm") {
     const parts = [0, 1].map((i) => fs.readFileSync(path.join(PUBLIC, `index.wasm.part${i}`)));
     const body = Buffer.concat(parts);
