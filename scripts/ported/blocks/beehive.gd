@@ -28,7 +28,9 @@ func act(delta: float) -> void:
 	_age += delta
 	if _age < birth_time:
 		return
-	unleashed = true
+	if not unleashed:
+		unleashed = true
+		Audio.play("bee_swarm", global_position)
 	_pause = maxf(_pause - delta, 0.0)
 	followed_character = _nearest_target()
 	if followed_character != null and _pause <= 0.0:

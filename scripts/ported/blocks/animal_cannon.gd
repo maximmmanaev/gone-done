@@ -47,6 +47,7 @@ func act(delta: float) -> void:
 
 
 func _launch(c: Character) -> void:
+	Audio.play("cannon_shot", global_position)
 	chrs_in_cannon.erase(c)
 	c.unfreeze()
 	c.global_position = global_position + dir * muzzle_offset

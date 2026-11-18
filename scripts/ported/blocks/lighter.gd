@@ -16,6 +16,8 @@ func act(delta_time: float) -> void:  # C# Act
 	var on := fmod(play_clock() + phase, interval) < on_time
 	if on != lighter_on:
 		set_lighter_hazard_state(on)
+		if on:
+			Audio.play("flamethrower", global_position)
 	if lighter_on:
 		for c: Character in zone_characters:
 			if is_instance_valid(c):

@@ -682,6 +682,7 @@ func _on_player_died(_cause: String) -> void:
 
 ## Сервер: бомба type взорвалась, в зоне zone (клетки) снесены блоки destroyed.
 func _on_boom(_uid: int, owner_id: int, type: String, zone: Rect2i, destroyed: Array) -> void:
+	Audio.play(type)
 	if owner_id == my_id:
 		_mark_placed("Бомба взорвалась. Ждём остальных…")
 	var zone_px := Rect2(Vector2(zone.position) * CELL, Vector2(zone.size) * CELL)
@@ -1073,6 +1074,8 @@ func _show_pick() -> void:
 
 
 func _on_picks(p: Dictionary) -> void:
+	if not picks.values().has(my_id) and p.values().has(my_id):
+		Audio.play("block_selected")
 	picks = p
 	for i in pick_buttons.size():
 		var b: Button = pick_buttons[i]
@@ -1088,6 +1091,7 @@ func _on_picks(p: Dictionary) -> void:
 
 func _on_block_added(uid: int, owner_id: int, type: String, origin: Vector2i, rot: int) -> void:
 	_spawn_block(uid, owner_id, type, origin, rot)
+	Audio.play("block_placed")
 	if owner_id == my_id:
 		_mark_placed("Блок поставлен. Ждём остальных…")
 
@@ -1267,6 +1271,7 @@ func _on_coin_picked(_chr: Character, uid: int) -> void:
 	if phase != Catalog.Phase.RUN or my_state != "alive":
 		return
 	my_coins += 1
+	Audio.play("coin_pickup")
 	Net.send_coin(uid)
 
 
@@ -1312,6 +1317,7 @@ func _finish() -> void:
 		return
 	player.set_success(true)      # монета, которую несёт игрок, засчитывается
 	my_state = "finished"
+	Audio.play("finish")
 	player.active = false
 	player.visible = false
 	_set_touch(false)
@@ -1323,6 +1329,7 @@ func _finish() -> void:
 func _die(uid: int) -> void:
 	if phase != Catalog.Phase.RUN or my_state != "alive":
 		return
+	Audio.play("defeat")
 	_leave_run("Вы погибли. Ждём остальных…")
 	Net.send_died(uid)
 

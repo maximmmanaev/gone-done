@@ -39,6 +39,7 @@ func shoot() -> void:
 		puck.add_child(art)
 	get_parent().add_child(puck)
 	pucks.append(puck)
+	Audio.play("hockey_shot", puck.global_position)
 	pucks_fired += 1
 	shooting = true
 

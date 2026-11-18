@@ -40,6 +40,11 @@ func _ready() -> void:
 		player.landed.emit(0.0)
 		check(a._next == next, "призрак двигается без звука")
 		player.free()
+	var cues: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(a.CUES_PATH))
+	for effect in cues.effects:
+		next = a._next
+		a.play(effect)
+		check(a._next != next, "%s: найден образец из банка" % effect)
 	a.play_music("menu")
 	var music: AudioStreamOggVorbis = a._music.stream
 	check(music != null and music.loop and a._music.playing, "музыка меню играет по кругу")

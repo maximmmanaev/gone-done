@@ -20,6 +20,7 @@ func _physics_process(delta: float) -> void:  # C# FixedUpdate
 		if is_instance_valid(c) and not c.dead and not c.dying and not c.is_ghost and clock - last_pushed.get(c, -INF) >= PUSH_DELAY:
 			last_pushed[c] = clock
 			c.bounce(strength, direction.normalized())
+			Audio.play("spring", global_position)
 
 func on_collision_enter_2d(c) -> void:  # C# OnCollisionEnter2D
 	pass

@@ -3,5 +3,21 @@
     "menu": { "source": 1020583303, "loop": true },
     "match": { "source": 627380408, "loop": true },
     "victory": { "source": 1027245590, "loop": false }
+  },
+  "effects": {
+    "block_selected": [232669782],
+    "block_placed": [240897041, 306258954],
+    "coin_pickup": [296301945],
+    "dynamite": [10359319],
+    "bomb": [181676505],
+    "nuke": [88126449],
+    "crossbow": [851410489],
+    "spring": [90942720],
+    "flamethrower": [998405167],
+    "hockey_shot": [480857508],
+    "cannon_shot": [863083974],
+    "bee_swarm": [272899129, 468854606],
+    "finish": [596714905],
+    "defeat": [960710779, 60216685]
   }
 }

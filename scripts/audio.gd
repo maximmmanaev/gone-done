@@ -1,5 +1,5 @@
 extends Node
-## Автозагрузка `Audio`: проигрывает звуки оригинала по имени события из assets/audio/events.json.
+## Автозагрузка `Audio`: звуки по событиям Wwise и игровым подсказкам, отдельный канал музыки.
 ## Неизвестное имя молча игнорируется.
 
 const EVENTS_PATH := "res://assets/audio/events.json"
@@ -18,7 +18,9 @@ var _music_cue := ""
 
 func _ready() -> void:
 	_events = _read_dict(EVENTS_PATH)
-	_music_cues = _read_dict(CUES_PATH).get("music", {})
+	var cues := _read_dict(CUES_PATH)
+	_events.merge(cues.get("effects", {}))
+	_music_cues = cues.get("music", {})
 	_music = AudioStreamPlayer.new()
 	_music.volume_db = MUSIC_VOLUME_DB
 	add_child(_music)

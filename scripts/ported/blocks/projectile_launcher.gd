@@ -49,6 +49,7 @@ func shoot_projectile_0() -> void:  # C# ShootProjectile
 	arrow.add_child(vis)
 	get_parent().add_child(arrow)
 	shots.append(arrow)
+	Audio.play("crossbow", arrow.global_position)
 	if is_instance_valid(shot_sprite):
 		shot_sprite.stop()
 		shot_sprite.play("default")
