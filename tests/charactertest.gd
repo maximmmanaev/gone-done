@@ -72,25 +72,30 @@ func _ready() -> void:
 	var landed := [0]
 	c.jumped.connect(func(): jumped[0] += 1)
 	c.landed.connect(func(_v): landed[0] += 1)
-	var top := c.position.y
-	for i in 60:
+	var start_y := c.position.y
+	var top := start_y
+	for i in 66:
 		c.feed_input(0.0, i < 40)
 		await get_tree().physics_frame
 		top = minf(top, c.position.y)
-	var rise := 185.0 - top
+	var rise := start_y - top
+	print("JUMP: полный=%.1f px" % rise)
 	check(jumped[0] == 1, "сигнал jumped один раз (%d)" % jumped[0])
-	check(rise > 30.0 and rise < 60.0, "высота прыжка в норме (%.1f px)" % rise)
+	check(rise >= 72.0 and rise <= 80.0, "высота прыжка в норме (%.1f px)" % rise)
 	check(landed[0] == 1 and c.on_ground, "приземлился, landed=%d" % landed[0])
 
 	# короткое нажатие прыгает ниже
 	_spawn(Vector2(50, 180))
 	await _frames(20)
-	var top2 := c.position.y
+	start_y = c.position.y
+	var top2 := start_y
 	for i in 40:
 		c.feed_input(0.0, i < 3)
 		await get_tree().physics_frame
 		top2 = minf(top2, c.position.y)
-	check(185.0 - top2 < rise - 8.0, "короткий прыжок ниже полного (%.1f < %.1f)" % [185.0 - top2, rise])
+	var tap_rise := start_y - top2
+	print("JUMP: короткий=%.1f px" % tap_rise)
+	check(tap_rise >= 35.0 and tap_rise < rise - 20.0, "короткий прыжок ниже полного (%.1f < %.1f)" % [tap_rise, rise])
 
 	# койот-тайм: прыжок сразу после схода с края
 	_spawn(Vector2(50, 180))
