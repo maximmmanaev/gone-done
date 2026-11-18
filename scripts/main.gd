@@ -267,11 +267,15 @@ func _build_skin_picker() -> void:
 		chosen.set_corner_radius_all(6)
 		b.add_theme_stylebox_override("pressed", chosen)
 		b.add_theme_stylebox_override("hover_pressed", chosen)
-		var preview := SkinLibrary.make_sprite(SkinLibrary.skin_for_kind(i), 0.5)   # тот же спрайт, что и в игре
+		var preview: Node2D
+		if SkinLibrary.skins().is_empty():
+			preview = Art.make_insect(i, Catalog.PLAYER_COLORS[i])
+		else:
+			preview = SkinLibrary.make_sprite(SkinLibrary.skin_for_kind(i), 0.5)
 		preview.position = Vector2(42, 52)
 		b.add_child(preview)
 		var caption := Label.new()
-		caption.text = SkinLibrary.skin_for_kind(i)
+		caption.text = _skin_caption(i)
 		caption.position = Vector2(0, 100)
 		caption.size = Vector2(84, 24)
 		caption.add_theme_font_size_override("font_size", 14)
@@ -287,6 +291,10 @@ func _build_skin_picker() -> void:
 	menu_box.add_child(skin_note)
 
 
+func _skin_caption(i: int) -> String:
+	return Catalog.INSECT_NAMES[i] if SkinLibrary.skins().is_empty() else SkinLibrary.skin_for_kind(i)
+
+
 func _select_skin(i: int) -> void:
 	skin = i
 	skin_buttons[i].set_pressed_no_signal(true)
@@ -299,7 +307,7 @@ func _apply_taken(taken: Array) -> void:
 	for i in skin_buttons.size():
 		skin_buttons[i].visible = not taken.has(i)
 		if taken.has(i):
-			names.append(SkinLibrary.skin_for_kind(i))
+			names.append(_skin_caption(i))
 	skin_note.text = "" if names.is_empty() else "Уже заняты: %s" % ", ".join(names)
 	if taken.has(skin):
 		for i in skin_buttons.size():
