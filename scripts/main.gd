@@ -124,7 +124,9 @@ func _build_menu() -> void:
 	menu_box.add_theme_constant_override("separation", 12)
 	root.add_child(menu_box)
 
-	skin = clampi(int(cfg.get_value("player", "skin", 0)), 0, Catalog.INSECT_NAMES.size() - 1)
+	skin = int(cfg.get_value("player", "skin", 0))
+	if skin < 0 or skin >= Catalog.SKIN_NAMES.size():
+		skin = 0
 	_build_skin_picker()
 
 	url_edit = LineEdit.new()
@@ -254,7 +256,7 @@ func _needs_home_screen_hint() -> bool:
 
 func _build_skin_picker() -> void:
 	var title := Label.new()
-	title.text = "Выберите насекомое"
+	title.text = "Выберите персонажа"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	menu_box.add_child(title)
 
@@ -264,12 +266,12 @@ func _build_skin_picker() -> void:
 	menu_box.add_child(row)
 
 	var group := ButtonGroup.new()
-	for i in Catalog.INSECT_NAMES.size():
+	for i in Catalog.SKIN_NAMES.size():
 		var b := Button.new()
 		b.toggle_mode = true
 		b.button_group = group
 		b.button_pressed = i == skin
-		b.custom_minimum_size = Vector2(84, 128)
+		b.custom_minimum_size = Vector2(120, 128)
 		b.pressed.connect(_select_skin.bind(i))
 		var chosen := StyleBoxFlat.new()   # выбранный скин: светлая подложка и золотая рамка
 		chosen.bg_color = Color(0.40, 0.34, 0.50)
@@ -279,16 +281,17 @@ func _build_skin_picker() -> void:
 		b.add_theme_stylebox_override("pressed", chosen)
 		b.add_theme_stylebox_override("hover_pressed", chosen)
 		var preview: Node2D
-		if SkinLibrary.skins().is_empty():
+		var original_skin := SkinLibrary.skin_for_kind(i)
+		if not SkinLibrary.has_skin(original_skin):
 			preview = Art.make_insect(i, Catalog.PLAYER_COLORS[i])
 		else:
-			preview = SkinLibrary.make_sprite(SkinLibrary.skin_for_kind(i), 0.5)
-		preview.position = Vector2(42, 52)
+			preview = SkinLibrary.make_sprite(original_skin, 0.5)
+		preview.position = Vector2(60, 52)
 		b.add_child(preview)
 		var caption := Label.new()
-		caption.text = _skin_caption(i)
+		caption.text = Catalog.SKIN_NAMES[i]
 		caption.position = Vector2(0, 100)
-		caption.size = Vector2(84, 24)
+		caption.size = Vector2(120, 24)
 		caption.add_theme_font_size_override("font_size", 14)
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -300,10 +303,6 @@ func _build_skin_picker() -> void:
 	skin_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	skin_note.add_theme_font_size_override("font_size", 20)
 	menu_box.add_child(skin_note)
-
-
-func _skin_caption(i: int) -> String:
-	return Catalog.INSECT_NAMES[i] if SkinLibrary.skins().is_empty() else SkinLibrary.skin_for_kind(i)
 
 
 func _select_skin(i: int) -> void:
@@ -318,7 +317,7 @@ func _apply_taken(taken: Array) -> void:
 	for i in skin_buttons.size():
 		skin_buttons[i].visible = not taken.has(i)
 		if taken.has(i):
-			names.append(_skin_caption(i))
+			names.append(Catalog.SKIN_NAMES[i])
 	skin_note.text = "" if names.is_empty() else "Уже заняты: %s" % ", ".join(names)
 	if taken.has(skin):
 		for i in skin_buttons.size():

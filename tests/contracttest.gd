@@ -33,8 +33,9 @@ func _ready() -> void:
 		check(host == Net.host_id and host > 0, "host_id int")
 		for p in players:
 			check(typeof(p.id) == TYPE_INT and typeof(p.score) == TYPE_INT and typeof(p.skin) == TYPE_INT, "типы игрока")
-			check(p.skin >= 0 and p.skin < Catalog.INSECT_NAMES.size(), "скин в допустимых пределах")
-			check(p.name == Catalog.INSECT_NAMES[p.skin], "имя игрока = название скина (сервер и клиент называют одинаково)")
+			var valid_skin: bool = p.skin >= 0 and p.skin < Catalog.SKIN_NAMES.size()
+			check(valid_skin, "скин в допустимых пределах")
+			check(valid_skin and p.name == Catalog.SKIN_NAMES[p.skin], "имя игрока = название скина (сервер и клиент называют одинаково)")
 		var skins := players.map(func(p): return p.skin)
 		check(skins.size() == Array(skins).filter(func(v): return skins.count(v) == 1).size(), "скины в комнате не повторяются"))
 	Net.phase_changed.connect(func(phase: int, data: Dictionary):
@@ -83,7 +84,7 @@ func _ready() -> void:
 	# отказ входа из-за занятого скина: сервер присылает error с taken (числа JSON — float, клиент приводит к int)
 	var got_taken: Array = []
 	Net.skins_taken.connect(func(t: Array): got_taken.append_array(t))
-	Net._handle({"t": "error", "msg": "Скин «Жук» уже занят", "taken": [0.0, 2.0]})
+	Net._handle({"t": "error", "msg": "Скин «Курица» уже занят", "taken": [0.0, 2.0]})
 	check(got_taken == [0, 2] and typeof(got_taken[0]) == TYPE_INT, "error.taken → skins_taken с int")
 
 	# сервер: взрыв. Числа JSON — float; клиент приводит зону к Rect2i, а снесённые блоки к int

@@ -15,6 +15,15 @@ func _ready() -> void:
 	var skins := SkinLibrary.skins()
 	check(skins.size() >= 7, "скинов >= 7 (сейчас %d)" % skins.size())
 	check("Chicken" in skins and skins[0] == "Chicken", "Chicken первый")
+	var expected := ["Chicken", "Arara_Chicken", "Chameleon", "Panda"]
+	check(Catalog.SKIN_NAMES.size() == expected.size(), "в меню ровно четыре скина")
+	for i in expected.size():
+		var skin := SkinLibrary.skin_for_kind(i)
+		check(skin == expected[i] and SkinLibrary.has_skin(skin), "игровой скин %s доступен" % expected[i])
+		var frames := SkinLibrary.frames(skin)
+		for animation in frames.get_animation_names():
+			check(frames.get_frame_count(animation) > 0, "%s: есть кадры %s" % [skin, animation])
+	check(SkinLibrary.skin_for_kind(6) == "Chicken", "старый индекс скина → Chicken")
 	var fr := SkinLibrary.frames("Chicken")
 	check(fr.get_frame_count("run") >= 6, "run >= 6 кадров")
 	for a in ["idle", "run", "walk", "jump_up", "jump_down", "jump_top", "land", "crouch", "wall_slide", "dead", "victory", "look_up"]:

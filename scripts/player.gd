@@ -23,12 +23,13 @@ func _ready() -> void:
 	shape.shape = rect
 	add_child(shape)
 
-	if SkinLibrary.skins().is_empty():
+	var original_skin := SkinLibrary.skin_for_kind(kind)
+	if not SkinLibrary.has_skin(original_skin):
 		insect = Art.make_insect(kind, body_color)
 		insect.scale = Vector2.ONE * Catalog.INSECT_K
 		add_child(insect)
 	else:
-		set_skin(SkinLibrary.skin_for_kind(kind))
+		set_skin(original_skin)
 	jumped.connect(_play_movement_sound.bind("Jump"))
 	landed.connect(func(_fall_speed: float): _play_movement_sound("Land"))
 

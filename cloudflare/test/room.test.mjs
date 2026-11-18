@@ -57,7 +57,7 @@ async function connect(env, query, record = false) {
   return new Client(res.webSocket, record);
 }
 
-// skin — индекс насекомого 0..6; без него сервер сам выдаёт первый свободный скин
+// Без указанного скина сервер сам выдаёт первый свободный.
 const skinQuery = (skin) => (skin === undefined ? "" : `&skin=${skin}`);
 
 const create = async (env, skin) => {
@@ -91,7 +91,7 @@ await test("создание комнаты: код из 4 символов и �
   assert.equal(host.joined.max, 4);
   assert.equal(host.joined.target, 30);
   const lobby = await host.type("lobby");
-  assert.deepEqual(lobby.players.map((p) => [p.skin, p.name]), [[2, "Пчела"]]);
+  assert.deepEqual(lobby.players.map((p) => [p.skin, p.name]), [[2, "Хамелеон"]]);
   host.close();
 });
 
@@ -340,7 +340,7 @@ await test("скин: выбранный сохраняется, без скин
   await auto.type("joined");
   const lobby = await host.next((m) => m.t === "lobby" && m.players.length === 3);
   assert.deepEqual(lobby.players.map((p) => p.skin), [3, 1, 0]);
-  assert.deepEqual(lobby.players.map((p) => p.name), ["Стрекоза", "Кузнечик", "Жук"]);
+  assert.deepEqual(lobby.players.map((p) => p.name), ["Панда", "Синяя курица", "Курица"]);
   [host, guest, auto].forEach((c) => c.close());
 });
 
@@ -349,7 +349,7 @@ await test("скин занят: вход отклоняется, в ответ�
   const host = await create(env, 0);
   const dup = await join(env, host.code, 0);
   const err = await dup.type("error");
-  assert.match(err.msg, /Жук.*занят/);
+  assert.match(err.msg, /Курица.*занят/);
   assert.deepEqual(err.taken, [0]);
   const free = await join(env, host.code, 2);       // свободный скин принимается
   await free.type("joined");
@@ -1008,14 +1008,16 @@ await test("карты: хозяин выбирает в лобби; земля 
   host.close();
 });
 
-await test("скины: 7 насекомых, но в комнате не больше 4 игроков", async () => {
+await test("четыре разных скина на комнату, старый индекс заменяется свободным", async () => {
   const env = makeEnv();
   const host = await create(env, 6);
   assert.equal(host.joined.max, 4);
-  const lobby = await host.next((m) => m.t === "lobby");
-  assert.equal(lobby.players[0].name, "Светлячок");
   const guests = [];
-  for (const sk of [4, 5, 0]) { const g = await join(env, host.code, sk); await g.type("joined"); guests.push(g); }
+  for (const sk of [1, 2, 3]) { const g = await join(env, host.code, sk); await g.type("joined"); guests.push(g); }
+  const lobby = await host.next((m) => m.t === "lobby" && m.players.length === 4);
+  assert.deepEqual(lobby.players.map((p) => [p.skin, p.name]), [
+    [0, "Курица"], [1, "Синяя курица"], [2, "Хамелеон"], [3, "Панда"],
+  ]);
   const full = await connect(env, `mode=join&code=${host.code}&skin=1`);
   assert.match((await full.type("error")).msg, /Комната заполнена/);
   host.close(); guests.forEach((g) => g.close());

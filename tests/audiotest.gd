@@ -25,7 +25,7 @@ func _ready() -> void:
 	var next: int = a._next
 	a.play("SFX_Chicken_Jump")
 	check(a._next != next, "SFX_Chicken_Jump загружает и проигрывает импортированный OGG")
-	for kind in Catalog.INSECT_NAMES.size():
+	for kind in Catalog.SKIN_NAMES.size():
 		var player := Player.new()
 		player.kind = kind
 		add_child(player)

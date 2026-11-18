@@ -10,8 +10,8 @@ import {
 
 const Phase = { LOBBY: 0, PICK: 1, PLACE: 2, RUN: 3, RESULT: 4, OVER: 5 };
 
-// Скин игрока = насекомое (индекс совпадает с Catalog.INSECT_NAMES в клиенте); один скин на комнату.
-export const SKINS = ["Жук", "Кузнечик", "Пчела", "Стрекоза", "Муравей", "Бабочка", "Светлячок"];
+// Индексы совпадают с Catalog.SKIN_NAMES в клиенте; в комнате каждый скин занимает один игрок.
+export const SKINS = ["Курица", "Синяя курица", "Хамелеон", "Панда"];
 const MAX_PLAYERS = 4;
 // Правила комнаты: хозяин меняет их в лобби. Значение по умолчанию — первое в списке допустимых.
 export const RULES = {
@@ -623,7 +623,7 @@ export function buildOffer(playerCount, random = Math.random, size = OFFER_DEFAU
   return offer;
 }
 
-// "2" -> 2; пусто или мусор -> null (скин назначит сервер)
+// Пустое значение, старые индексы 4..6 и мусор: скин назначит сервер.
 function parseSkin(raw) {
   if (raw === null || !/^\d$/.test(raw)) return null;
   const n = Number(raw);

@@ -1241,17 +1241,16 @@ func _on_lobby(host: int, plist: Array) -> void:
 # ======================================================================
 
 func _color_of(id: int) -> Color:
-	for p in Net.players:
-		if p.id == id:
-			return Catalog.PLAYER_COLORS[int(p.skin) % Catalog.PLAYER_COLORS.size()]
-	return Color.WHITE
+	var kind := _kind_of(id, -1)
+	return Catalog.PLAYER_COLORS[kind] if kind >= 0 else Color.WHITE
 
 
-func _kind_of(id: int) -> int:
+func _kind_of(id: int, fallback := 0) -> int:
 	for p in Net.players:
 		if p.id == id:
-			return int(p.skin) % Catalog.PLAYER_COLORS.size()
-	return 0
+			var kind := int(p.skin)
+			return kind if kind >= 0 and kind < Catalog.SKIN_NAMES.size() else 0
+	return fallback
 
 
 func _name_of(id: int) -> String:
@@ -1284,16 +1283,18 @@ func _ensure_remote(id: int) -> Node2D:
 	if remote_nodes.has(id) and is_instance_valid(remote_nodes[id]):
 		return remote_nodes[id]
 	var n := Node2D.new()
-	if SkinLibrary.skins().is_empty():
-		var vis := Art.make_insect(_kind_of(id), _color_of(id))
+	var kind := _kind_of(id)
+	var original_skin := SkinLibrary.skin_for_kind(kind)
+	if not SkinLibrary.has_skin(original_skin):
+		var vis := Art.make_insect(kind, _color_of(id))
 		vis.scale = Vector2.ONE * Catalog.INSECT_K
 		n.add_child(vis)
 	else:
-		n.add_child(SkinLibrary.make_sprite(SkinLibrary.skin_for_kind(_kind_of(id)), 0.2))
+		n.add_child(SkinLibrary.make_sprite(original_skin, 0.2))
 	var tag := Label.new()
 	tag.text = _name_of(id)
-	tag.position = Vector2(-50, -Catalog.PLAYER_SIZE.y / 2.0 - 24.0)   # над головой
-	tag.size = Vector2(100, 24)
+	tag.position = Vector2(-66, -Catalog.PLAYER_SIZE.y / 2.0 - 24.0)   # над головой
+	tag.size = Vector2(132, 24)
 	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tag.add_theme_font_size_override("font_size", 16)
 	tag.add_theme_color_override("font_outline_color", Color.BLACK)

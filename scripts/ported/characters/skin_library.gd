@@ -3,6 +3,8 @@ class_name SkinLibrary
 extends RefCounted
 
 const DEFAULT_SKIN := "Chicken"
+# Индексы выбора в меню и в сетевых сообщениях. Этот список читает фильтр Web-экспорта.
+const MATCH_SKINS := ["Chicken", "Arara_Chicken", "Chameleon", "Panda"]
 const FPS := 12.0   # GUESS: тайминг анимаций в декомпилированном коде не сохранился
 const REQUIRED := ["Idle", "Run", "JumpGoingUp"]
 
@@ -108,12 +110,9 @@ static func frames(skin: String) -> SpriteFrames:
 	return sf
 
 
-## Сетевой/сохранённый индекс скина (0..6) -> имя скина оригинала.
+## Сетевой/сохранённый индекс -> имя скина оригинала.
 static func skin_for_kind(kind: int) -> String:
-	var all := skins()
-	if all.is_empty():
-		return DEFAULT_SKIN
-	return all[posmod(kind, all.size())]
+	return MATCH_SKINS[kind] if kind >= 0 and kind < MATCH_SKINS.size() else DEFAULT_SKIN
 
 
 ## Спрайт скина в масштабе игры (для предпросмотра и чужих игроков).
