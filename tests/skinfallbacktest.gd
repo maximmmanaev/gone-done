@@ -13,6 +13,7 @@ func check(cond: bool, what: String) -> void:
 
 
 func _ready() -> void:
+	var exists_fn := SkinLibrary.exists_fn
 	SkinLibrary.exists_fn = func(_p): return false
 	SkinLibrary.reset()
 	check(SkinLibrary.skins().is_empty(), "без файлов спрайтов скинов нет")
@@ -20,7 +21,7 @@ func _ready() -> void:
 	p.kind = 2
 	add_child(p)
 	check(p.sprite == null and p.insect != null, "Player без ассетов рисует запасное насекомое")
-	SkinLibrary.exists_fn = func(path): return ResourceLoader.exists(path)
+	SkinLibrary.exists_fn = exists_fn
 	SkinLibrary.reset()
 	check(SkinLibrary.skins().size() >= 7, "с ассетами скины возвращаются (%d)" % SkinLibrary.skins().size())
 	print("skinfallbacktest: ", "OK" if failures == 0 else "%d FAIL" % failures)
