@@ -63,47 +63,32 @@ func _ready() -> void:
 	g._unhandled_input(ev)
 	check(g.ghost_rot == rot_before, "A вращает против часовой")
 
-	# ---- все блоки во всех поворотах ----
-	var uid := 0
-	var x := 1
-	for t in ["plank", "box", "pillar", "spikes", "saw", "spring", "mover"]:
+	# Проверяем весь каталог в четырёх поворотах, очищая поле между типами.
+	for type in Catalog.block_ids():
+		var is_bomb: bool = Catalog.BLOCKS[type].kind == "bomb"
 		for rot in 4:
-			uid += 1
-			var sz := Catalog.size_of(t, rot)
-			var origin := Vector2i(x, 2)
-			g._spawn_block(uid, 1, t, origin, rot)
-			check(Catalog.can_place(t, origin, {}, rot), "%s rot %d помещается в сетку" % [t, rot])
-			x += sz.x + 1
-			if x > 34:
-				x = 1
-	# новые блоки (бомбы и ловушки) во всех поворотах — справа, подальше от точки старта игрока
-	var nx := 22
-	for t in ["dynamite", "bomb", "nuke", "crossbow", "flamethrower", "pendulum", "coin"]:
-		for rot in 4:
-			uid += 1
-			var sz := Catalog.size_of(t, rot)
-			var origin := Vector2i(nx, 2)
-			g._spawn_block(uid, 1, t, origin, rot)
-			check(Catalog.can_place(t, origin, {}, rot), "%s rot %d помещается в сетку" % [t, rot])
-			nx += sz.x + 1
-			if nx > 34:
-				nx = 22
-	check(g.block_nodes.size() == uid, "созданы все блоки (%d)" % uid)
-	check(Catalog.BLOCKS.size() == 26, "в каталоге 26 блоков")
-	# лифт (повёрнутый листок) ездит по вертикали, обычный листок — по горизонтали
-	var horizontal := false
-	var vertical := false
-	for pl in g.ported:
-		horizontal = horizontal or pl is HorizontalMovingPlatform
-		vertical = vertical or (pl is MovingPlatform and not pl is HorizontalMovingPlatform and pl.move_angle == 90.0)
-	check(horizontal and vertical, "листок: горизонтальный и вертикальный (лифт)")
+			var origin := Vector2i(12 + rot * 12, 2)
+			check(Catalog.can_place(type, origin, g.occupied, rot), "%s rot %d помещается в сетку" % [type, rot])
+			if not is_bomb:   # бомбы взрываются при установке; их проверяет bombtest
+				g._spawn_block(rot + 1, 1, type, origin, rot)
+		check(g.block_nodes.size() == (0 if is_bomb else 4), "%s: установлены все повороты" % type)
+		if type == "mover":
+			# Лифт (повёрнутый листок) ездит по вертикали, обычный листок — по горизонтали.
+			var horizontal := false
+			var vertical := false
+			for pl in g.ported:
+				horizontal = horizontal or pl is HorizontalMovingPlatform
+				vertical = vertical or (pl is MovingPlatform and not pl is HorizontalMovingPlatform and pl.move_angle == 90.0)
+			check(horizontal and vertical, "листок: горизонтальный и вертикальный (лифт)")
+		g._clear_blocks()
+		await get_tree().process_frame
 
 	g.on_phase(Catalog.Phase.RUN, {"order": [g.my_id], "time": 45.0})
 	for i in 90:
 		await get_tree().physics_frame
 	var p: Player = g.player
 	var want_y: float = (Catalog.spawn_cell(0).y + 1) * Catalog.CELL - Catalog.PLAYER_SIZE.y / 2.0
-	print("TEST: блоков=%d, игрок y=%.1f (ожидаем ~%.0f на крыше), состояние=%s" % [g.block_nodes.size(), p.position.y, want_y, g.my_state])
+	print("TEST: игрок y=%.1f (ожидаем ~%.0f на крыше), состояние=%s" % [p.position.y, want_y, g.my_state])
 	check(p.is_on_floor() and absf(p.position.y - want_y) < 1.5, "персонаж 1×2 стоит на крыше, ноги на полу")
 	check(g.my_state == "alive", "жив после появления")
 
