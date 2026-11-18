@@ -80,6 +80,7 @@ def main() -> None:
     if not args.skip_export:
         if not args.godot:
             sys.exit("Укажите --godot или --skip-export")
+        subprocess.run([sys.executable, "-I", os.path.join(PROJECT, "tools", "web_export_filter.py")], check=True)
         subprocess.run([args.godot, "--headless", "--path", PROJECT, "--export-release", "Web",
                         os.path.join(PUBLIC, "index.html")], check=True)
 

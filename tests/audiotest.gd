@@ -25,5 +25,20 @@ func _ready() -> void:
 	var next: int = a._next
 	a.play("SFX_Chicken_Jump")
 	check(a._next != next, "SFX_Chicken_Jump загружает и проигрывает импортированный OGG")
+	for kind in Catalog.INSECT_NAMES.size():
+		var player := Player.new()
+		player.kind = kind
+		add_child(player)
+		player.active = true
+		next = a._next
+		player.jumped.emit()
+		player.landed.emit(0.0)
+		check(a._next == (next + 2) % a.POOL_SIZE, "%s: слышны прыжок и приземление" % player.skin_name)
+		player.is_ghost = true
+		next = a._next
+		player.jumped.emit()
+		player.landed.emit(0.0)
+		check(a._next == next, "призрак двигается без звука")
+		player.free()
 	print("audiotest: ", "OK" if failures == 0 else "%d FAIL" % failures)
 	get_tree().quit(1 if failures else 0)

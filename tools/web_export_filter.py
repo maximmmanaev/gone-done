@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Прописывает в export_presets.cfg (пресет Web) exclude_filter: из ассетов оригинала в веб-сборку идут только
-используемые игрой спрайты (7 скинов из picker + блоки из BlockArt.MAP) и звук; текстуры, шрифты, тексты — нет.
+используемые игрой спрайты (7 скинов из picker + блоки из BlockArt.MAP) и звуки прыжка и приземления.
 
   python3 -I tools/web_export_filter.py [--check]
 """
@@ -31,11 +31,33 @@ def used_sprite_files(manifest: dict) -> set:
     return {os.path.basename(p) for g in groups for p in sprites.get(g, [])}
 
 
+def unused_files(folder: str, extension: str, keep: set) -> list:
+    directory = os.path.join(ROOT, "assets", folder)
+    if not os.path.isdir(directory):
+        return []
+    return [
+        f"assets/{folder}/{file}"
+        for file in sorted(os.listdir(directory))
+        if file.endswith(extension) and file not in keep
+    ]
+
+
 def build_excludes() -> list:
-    manifest = json.load(open(os.path.join(ROOT, "assets/manifest.json")))
-    keep = used_sprite_files(manifest)
-    drop = sorted(f for f in os.listdir(os.path.join(ROOT, "assets/sprites")) if f.endswith(".png") and f not in keep)
-    return STATIC + [f"assets/sprites/{f}" for f in drop]
+    with open(os.path.join(ROOT, "assets/manifest.json"), encoding="utf-8") as f:
+        manifest = json.load(f)
+    with open(os.path.join(ROOT, "assets/audio/events.json"), encoding="utf-8") as f:
+        events = json.load(f)
+    movement_sounds = {
+        f"{wid}.ogg"
+        for event, ids in events.items()
+        if event.startswith("SFX_") and event.endswith(("_Jump", "_Land"))
+        for wid in ids
+    }
+    return (
+        STATIC
+        + unused_files("sprites", ".png", used_sprite_files(manifest))
+        + unused_files("audio", ".ogg", movement_sounds)
+    )
 
 
 if __name__ == "__main__":
