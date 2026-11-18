@@ -140,12 +140,22 @@ func _set_map(map: int) -> void:
 		for c in root_node.get_children():
 			root_node.remove_child(c)
 			c.queue_free()
-	sky_root.add_child(VectorLevel.make_node("res://assets/levels/level%d.vec" % (map + 1)))   # векторный фон: чёткий при любом зуме
-	for r in Catalog.MAPS[map].rects:
+	var info: Dictionary = Catalog.MAPS[map]
+	if info.has("background"):
+		var background := Sprite2D.new()
+		background.texture = load(info.background)
+		background.centered = false
+		sky_root.add_child(background)
+	else:
+		sky_root.add_child(VectorLevel.make_node("res://assets/levels/level%d.vec" % (map + 1)))
+	for i in info.rects.size():
+		var r: Rect2i = info.rects[i]
 		var body := StaticBody2D.new()
 		_fill_body(body, r, Color.WHITE, "ground")
+		if i == int(info.get("ledge", -1)):
+			body.add_child(Art.make_grass_ledge(Vector2(r.size) * CELL))
 		roofs_root.add_child(body)
-	for r in Catalog.MAPS[map].hazards:
+	for r in info.hazards:
 		var zone := Area2D.new()
 		zone.collision_layer = 0
 		zone.collision_mask = 2

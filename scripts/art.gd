@@ -712,3 +712,28 @@ static func make_ported(type: String, size: Vector2, color: Color) -> Node2D:
 	n.size = size
 	n.color = color
 	return n
+
+
+
+## Подвесная площадка с блок-аута карты «Грибы». Верх вровень с коллайдером.
+static func make_grass_ledge(size: Vector2) -> Node2D:
+	var ledge := Node2D.new()
+	ledge.position = -size / 2.0
+	var soil := Polygon2D.new()
+	soil.polygon = PackedVector2Array([
+		Vector2.ZERO, Vector2(size.x, 0), Vector2(size.x * 0.94, size.y * 0.72),
+		Vector2(size.x * 0.73, size.y), Vector2(size.x * 0.37, size.y * 0.89),
+		Vector2(size.x * 0.11, size.y * 0.78),
+	])
+	soil.color = Color("#805148")
+	ledge.add_child(soil)
+	var grass := Polygon2D.new()
+	grass.polygon = PackedVector2Array([
+		Vector2.ZERO, Vector2(size.x * 0.12, -2), Vector2(size.x * 0.32, 0),
+		Vector2(size.x * 0.53, -3), Vector2(size.x * 0.76, 0), Vector2(size.x * 0.91, -2),
+		Vector2(size.x, 0), Vector2(size.x * 0.98, 4), Vector2(size.x * 0.69, 7),
+		Vector2(size.x * 0.45, 4), Vector2(size.x * 0.20, 6), Vector2(2, 4),
+	])
+	grass.color = Color("#a9ac42")
+	ledge.add_child(grass)
+	return ledge

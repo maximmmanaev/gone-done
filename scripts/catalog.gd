@@ -8,9 +8,9 @@ const CELL := 16
 const GRID_W := 80
 const GRID_H := 40
 
-# Четыре карты — картинки уровней 1–4 (векторный рисунок assets/levels/levelN.vec лежит фоном; исходные картинки — tools/level_source), в клетках по сетке 80×40 (клетка 16 px, персонаж 1,8 клетки). Зеркало MAPS в
-# cloudflare/src/catalog.js. rects — невидимая земля и платформы ровно по нарисованному; последняя — финишная крыша под флагом
-# (goal — клетка флага). spawn — клетка старта (земля на строку ниже). hazards — зоны, убивающие при касании (шипы, слизь).
+# Карты на сетке 80×40 (клетка 16 px). Зеркало в cloudflare/src/catalog.js.
+# Первая платформа держит игроков на старте, последняя — флаг.
+# Старые фоны лежат в assets/levels/levelN.vec. У «Грибов» свой рисунок.
 const MAPS := [
 	{"name": "Пруд", "spawn": Vector2i(4, 26), "goal": Vector2i(74, 10),
 		"rects": [Rect2i(0, 27, 24, 13), Rect2i(22, 22, 14, 2), Rect2i(42, 20, 14, 2), Rect2i(58, 22, 8, 2), Rect2i(52, 27, 14, 13), Rect2i(64, 11, 16, 29)],
@@ -24,6 +24,10 @@ const MAPS := [
 	{"name": "Свалка", "spawn": Vector2i(4, 30), "goal": Vector2i(74, 6),
 		"rects": [Rect2i(0, 31, 24, 9), Rect2i(26, 7, 12, 2), Rect2i(16, 15, 14, 1), Rect2i(24, 20, 8, 2), Rect2i(20, 25, 10, 2), Rect2i(36, 16, 6, 2), Rect2i(34, 24, 10, 1), Rect2i(44, 13, 12, 2), Rect2i(56, 16, 16, 2), Rect2i(60, 20, 8, 7), Rect2i(56, 27, 6, 2), Rect2i(58, 31, 12, 9), Rect2i(52, 33, 6, 2), Rect2i(66, 7, 14, 6)],
 		"hazards": [Rect2i(24, 35, 34, 5), Rect2i(72, 31, 8, 9)]},
+	# GUESS: границы округлены до клеток по цветному фону и блок-ауту.
+	{"name": "Грибы", "spawn": Vector2i(8, 22), "goal": Vector2i(68, 18),
+		"rects": [Rect2i(4, 23, 13, 5), Rect2i(0, 25, 4, 3), Rect2i(17, 25, 2, 3), Rect2i(6, 28, 6, 11), Rect2i(34, 29, 8, 4), Rect2i(31, 31, 3, 2), Rect2i(42, 31, 3, 2), Rect2i(36, 33, 4, 6), Rect2i(50, 25, 6, 1), Rect2i(0, 39, 80, 1), Rect2i(56, 22, 4, 4), Rect2i(60, 20, 2, 6), Rect2i(65, 26, 9, 13), Rect2i(62, 19, 18, 7)],
+		"hazards": [], "background": "res://assets/levels/mushrooms.webp", "ledge": 8},
 ]
 
 static func spawn_cell(map: int) -> Vector2i:

@@ -1,5 +1,5 @@
 extends Node
-## Проверка всех четырёх уровней: игрок встаёт на землю у старта, платформы твёрдые, опасные зоны убивают, флаг засчитывает финиш.
+## Проверка всех уровней: игрок встаёт на землю у старта, платформы твёрдые, опасные зоны убивают, флаг засчитывает финиш.
 ## Пройти уровень без блоков нельзя (в этом смысл игры), поэтому финиш и смерть проверяем телепортом в нужную зону.
 ##   godot --headless --path . tests/walktest.tscn
 
@@ -32,7 +32,9 @@ func _ready() -> void:
 		check(g.player.is_on_floor() and absf(feet - ground) < 2.0, "%s: игрок стоит на земле (ноги %.0f, земля %.0f)" % [name, feet, ground])
 		for i in 4:
 			var pos: Vector2 = g._spawn_pos(i)
-			check(pos.x > 0.0 and pos.x < 12 * Catalog.CELL, "%s: спавн %d над стартовой землёй (x=%.0f)" % [name, i, pos.x])
+			var roof: Rect2i = Catalog.MAPS[map].rects[0]
+			check(pos.x > roof.position.x * Catalog.CELL and pos.x < roof.end.x * Catalog.CELL,
+				"%s: спавн %d над стартовой землёй (x=%.0f)" % [name, i, pos.x])
 
 		# каждая платформа твёрдая: игрок, поставленный над ней, на ней остаётся
 		for r: Rect2i in Catalog.MAPS[map].rects:

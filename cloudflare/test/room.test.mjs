@@ -956,10 +956,10 @@ await test("по очереди: бомба тоже занимает ход и 
   host.close(); guest.close();
 });
 
-await test("карты: четыре, хозяин выбирает в лобби; земля и запретные зоны зависят от карты, бомбу на землю не поставить", async () => {
+await test("карты: хозяин выбирает в лобби; земля и запретные зоны зависят от карты, бомбу на землю не поставить", async () => {
   const env = makeEnv();
   const host = await create(env);
-  host.send({ t: "rule", key: "map", value: 4 });                    // пятой карты нет
+  host.send({ t: "rule", key: "map", value: 5 });                    // вне каталога
   host.send({ t: "rule", key: "map", value: -1 });
   host.send({ t: "rule", key: "map", value: 2 });                    // «Болото»: платформа [14,22,18,2], финиш [62,7,18,8], флаг (74,6)
   assert.equal((await host.next((m) => m.t === "lobby" && m.rules.map === 2)).rules.map, 2);
@@ -973,6 +973,10 @@ await test("карты: четыре, хозяин выбирает в лобб�
   assert.equal(canPlace("plank", 38, 14, room.occupied, 0), true, "на «Пруде» в (38,14) пусто");
   assert.equal(canPlace("plank", 22, 22, room.occupied, 0), false, "на «Пруде» в (22,22) платформа");
   assert.equal(canPlace("plank", 34, 11, room.occupied, 0), true, "на «Болоте» это место занято (платформа [34,11,12,2]), на «Пруде» нет");
+  host.send({ t: "rule", key: "map", value: 4 });                    // «Грибы»
+  await host.next((m) => m.t === "lobby" && m.rules.map === 4);
+  assert.equal(canPlace("plank", 50, 25, room.occupied, 0), false, "подвесная площадка уже занята");
+  assert.equal(canPlace("plank", 45, 26, room.occupied, 0), true, "между грибами можно строить");
   host.send({ t: "rule", key: "map", value: 3 });                    // «Свалка»: постамент [58,31,12,9]
   await host.next((m) => m.t === "lobby" && m.rules.map === 3);
   host.send({ t: "start" });

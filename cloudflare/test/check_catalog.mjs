@@ -12,7 +12,7 @@ assert.equal(Number(gd.match(/const GRID_W := (\d+)/)[1]), GRID_W, "GRID_W");
 assert.equal(Number(gd.match(/const GRID_H := (\d+)/)[1]), GRID_H, "GRID_H");
 // карты: имя, старт, флаг, земля и опасные зоны каждой, в том же порядке
 const rectList = (text) => [...text.matchAll(/Rect2i\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)/g)].map((r) => r.slice(1).map(Number));
-const gdMaps = [...gd.matchAll(/\{"name": "([^"]+)", "spawn": Vector2i\((\d+), (\d+)\), "goal": Vector2i\((\d+), (\d+)\),\s*"rects": \[([^\]]*)\],\s*"hazards": \[([^\]]*)\]\}/g)].map((m) => ({
+const gdMaps = [...gd.matchAll(/\{"name": "([^"]+)", "spawn": Vector2i\((\d+), (\d+)\), "goal": Vector2i\((\d+), (\d+)\),\s*"rects": \[([^\]]*)\],\s*"hazards": \[([^\]]*)\]/g)].map((m) => ({
   name: m[1],
   spawn: [Number(m[2]), Number(m[3])],
   goal: [Number(m[4]), Number(m[5])],
@@ -20,7 +20,7 @@ const gdMaps = [...gd.matchAll(/\{"name": "([^"]+)", "spawn": Vector2i\((\d+), (
   hazards: rectList(m[7]),
 }));
 assert.deepEqual(gdMaps, MAPS, "MAPS");
-assert.equal(MAPS.length, 4, "четыре карты");
+assert.equal(MAPS.at(-1).name, "Грибы", "Грибы добавляются после прежних карт");
 for (const m of MAPS) {
   const [sx, sy] = m.spawn;
   const [x0, y0, w0] = m.rects[0];
