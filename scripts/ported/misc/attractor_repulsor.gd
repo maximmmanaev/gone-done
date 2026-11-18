@@ -1,39 +1,18 @@
-# Ported from structur/AttractorRepulsor.cs (Unity -> Godot skeleton, bodies not recovered from Il2Cpp dump)
+# Каркас из AttractorRepulsor.cs + логика, написанная вручную.
+## Магнит тянет к центру; обратный поворот переключает его на отталкивание.
 class_name AttractorRepulsor
-extends Node2D
+extends ActiveBlock
 
-@export var radius: float
-@export var inner_radius: float
-@export var push_accel: float
-var distance_factor: Curve
-@export var center_rotate_delay: float
-var affected_projectiles: Array
-var destroyed_projectiles: Array
-var pause_attraction: bool
+@export var radius := 72.0         # GUESS
+@export var push_accel := 480.0    # GUESS
+var repels := false
 
-func _enter_tree() -> void:  # C# Awake
-	pass
 
-func _ready() -> void:  # C# Start
-	pass
-
-func _exit_tree() -> void:  # C# OnDestroy
-	pass
-
-func _process(delta: float) -> void:  # C# Update
-	pass
-
-func on_trigger_enter_2d(c: CollisionShape2D) -> void:  # C# OnTriggerEnter2D
-	pass
-
-func on_trigger_stay_2d(c: CollisionShape2D) -> void:  # C# OnTriggerStay2D
-	pass
-
-func on_trigger_exit_2d(c: CollisionShape2D) -> void:  # C# OnTriggerExit2D
-	pass
-
-func _physics_process(delta: float) -> void:  # C# FixedUpdate
-	pass
-
-func handle_event(e) -> void:  # C# handleEvent
-	pass
+func act(delta: float) -> void:
+	for c: Character in zone_characters:
+		if not is_instance_valid(c) or c.dead or c.dying or c.success or c.is_ghost:
+			continue
+		var offset := global_position - c.global_position
+		var weight := clampf(1.0 - offset.length() / radius, 0.0, 1.0)
+		var force := offset.normalized() * push_accel * weight * delta
+		c.add_impulse(-force if repels else force)

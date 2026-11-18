@@ -429,13 +429,14 @@ export class Room {
     this.checkRunEnd();
   }
 
-  // Монета: подобрать можно один раз за забег; дошедший до флага с монетой получает очки.
+  // Подбор один раз за забег. Только монета приносит очки при финише.
   onCoin(id, uid) {
     const p = this.players.get(id);
     if (!p || this.phase !== Phase.RUN || p.state !== "alive") return;
-    if (this.blocks.get(uid)?.type !== "coin" || this.coinsTaken.has(uid)) return;
+    const type = this.blocks.get(uid)?.type;
+    if (!["coin", "stopwatch", "jetpack", "jetpack_dispenser"].includes(type) || this.coinsTaken.has(uid)) return;
     this.coinsTaken.add(uid);
-    p.coins++;
+    if (type === "coin") p.coins++;
     this.broadcast({ t: "coin", uid, id });
   }
 

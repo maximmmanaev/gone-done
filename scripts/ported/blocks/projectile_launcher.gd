@@ -39,10 +39,11 @@ func act(delta_time: float) -> void:  # C# Act
 func shoot_projectile_0() -> void:  # C# ShootProjectile
 	var arrow := Projectile.new()
 	arrow.direction = shoot_dir
+	arrow.speed = projectile_speed
 	arrow.launched_from = self
 	arrow.position = position + shoot_dir * muzzle_offset
 	arrow.rotation = shoot_dir.angle() + PI / 2.0
-	var vis := BlockArt.make("crossbow_arrow", Vector2.ONE * Catalog.CELL)
+	var vis := BlockArt.make(projectile_art, Vector2.ONE * Catalog.CELL)
 	if vis == null:
 		vis = Art.make_arrow()
 		vis.scale = Vector2.ONE * Catalog.K
@@ -54,6 +55,8 @@ func shoot_projectile_0() -> void:  # C# ShootProjectile
 		shot_sprite.stop()
 		shot_sprite.play("default")
 
+var projectile_art := "crossbow_arrow"
+var projectile_speed := 230.0
 var shot_sprite: AnimatedSprite2D
 var shoot_dir := Vector2.RIGHT
 var muzzle_offset := 12.0

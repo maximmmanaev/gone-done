@@ -12,7 +12,7 @@ var hazard_timer := 0.0
 var trapped: Array = []   # кто был в проёме, когда дверь закрылась (физика выталкивает их из зоны, но опасность остаётся)
 var body: StaticBody2D
 var collider: CollisionShape2D
-var _visual_alpha := 1.0
+var pass_dir := Vector2.ZERO
 
 
 func setup_body(b: StaticBody2D, size: Vector2) -> void:
@@ -21,7 +21,10 @@ func setup_body(b: StaticBody2D, size: Vector2) -> void:
 		if ch is CollisionShape2D:
 			collider = ch
 	# зона чуть меньше двери: в ней оказывается только тот, на ком дверь закрылась
-	setup_zone(size - Vector2(4, 4))
+	if pass_dir.is_zero_approx():
+		setup_zone(size - Vector2(4, 4))
+	else:
+		setup_zone(size + pass_dir.abs() * Catalog.CELL * 2.0)
 
 
 func _set_open(value: bool) -> void:
@@ -35,6 +38,15 @@ func _set_open(value: bool) -> void:
 
 
 func act(delta: float) -> void:
+	if not pass_dir.is_zero_approx():
+		var passing := false
+		for c: Character in zone_characters:
+			if is_instance_valid(c) and c.active and not c.is_ghost and c.velocity.dot(pass_dir) > 0.0:
+				passing = true
+				break
+		if passing != open:
+			_set_open(passing)
+		return
 	if timed:
 		timer += delta
 		if timer >= interval:

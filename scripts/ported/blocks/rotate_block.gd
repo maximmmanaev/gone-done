@@ -12,15 +12,21 @@ var rotate_time := 0.0
 var _turning := false
 var _wait := 0.0
 var body: AnimatableBody2D
+var continuous := false
+var _rest_rotation := 0.0
 
 
 func setup_body(b: AnimatableBody2D) -> void:
 	body = b
 	body.sync_to_physics = true
+	_rest_rotation = body.rotation
 
 
 func act(delta: float) -> void:
 	if body == null:
+		return
+	if continuous:
+		body.rotation_degrees += rotate_speed * delta * (1.0 if clockwise else -1.0)
 		return
 	if not _turning:
 		_wait += delta
@@ -41,5 +47,5 @@ func reset_play_state() -> void:
 	_wait = 0.0
 	rotate_amt = 0.0
 	if body != null:
-		body.rotation = 0.0
+		body.rotation = _rest_rotation
 	super()

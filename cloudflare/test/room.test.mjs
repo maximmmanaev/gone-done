@@ -477,7 +477,7 @@ await test("выбор: 4 блока, ядерная бомба всегда, н
     assert.ok(offer.length >= players);
     assert.ok(offer.includes("nuke"), "есть ядерная бомба");
     for (const t of new Set(offer)) assert.ok(offer.filter((x) => x === t).length <= 2, `слишком много «${t}»`);
-    assert.ok(offer.every((t) => BLOCKS[t]), "только известные блоки");
+    assert.ok(offer.every((t) => OFFER_IDS.includes(t)), "только предметы со скриншотов");
     offer.forEach((t) => seen.add(t));
   }
   assert.equal(seen.size, OFFER_IDS.length, "со временем предлагаются все блоки инвентаря, включая ловушки");
@@ -817,6 +817,23 @@ await test("монета без финиша очков не даёт; мёрт�
   assert.equal(res.msg, "Никто не дошёл — очков нет");
   // следующий забег: монета снова на месте и её можно подобрать
   assert.equal(room.blocks.get(coinUid).type, "coin");
+  host.close(); guest.close();
+});
+
+await test("инвентарь: секундомер и ранец подбираются один раз за забег, очков не дают", async () => {
+  const env = makeEnv();
+  const { host, guest, room } = await runScene(env, ["stopwatch", "jetpack_dispenser", "plank", "nuke"]);
+  for (const [uid] of room.blocks) {
+    guest.send({ t: "coin", uid });
+    host.send({ t: "coin", uid });
+    assert.deepEqual(await host.type("coin"), { t: "coin", uid, id: guest.id });
+    assert.deepEqual(await guest.type("coin"), { t: "coin", uid, id: guest.id });
+    assert.ok(await host.quiet("coin", 120), "повторный подбор игнорируется");
+  }
+  guest.send({ t: "finished" });
+  host.send({ t: "died", uid: -1 });
+  const result = await guest.type("result");
+  assert.equal(result.result[guest.id].gain, 20, "только очки за финиш");
   host.close(); guest.close();
 });
 

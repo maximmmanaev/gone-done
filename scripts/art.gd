@@ -631,6 +631,18 @@ class PortedDraw extends Node2D:
 	func _draw() -> void:
 		var r := Rect2(-size / 2.0, size)
 		match type:
+			"magnet":
+				Art.rect_shape(self, r, Color("#ad8a63"))
+				Art.stroke(self, r.position, r.end, Color("#a5a8a8"), 2.0)
+				Art.stroke(self, Vector2(r.end.x, r.position.y), Vector2(r.position.x, r.end.y), Color("#a5a8a8"), 2.0)
+				draw_arc(Vector2.ZERO, size.y * 0.27, -PI / 2.0, PI / 2.0, 20, color, 4.0, true)
+			"ferris":
+				var radius := size.x * 0.35
+				for i in 4:
+					var tip := Vector2.RIGHT.rotated(PI / 4.0 + i * PI / 2.0) * radius
+					Art.stroke(self, Vector2.ZERO, tip, color, 2.0)
+					Art.rect_shape(self, Rect2(tip - Vector2(9, 3), Vector2(18, 6)), color, 1.3)
+				Art.disc(self, Vector2.ZERO, 4.0, color, 1.5)
 			"ice":
 				Art.rect_shape(self, r, color)
 				for i in 3:

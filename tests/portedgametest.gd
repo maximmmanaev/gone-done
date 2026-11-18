@@ -188,5 +188,38 @@ func _ready() -> void:
 	var s2: LinearSaw = g.ported[0]
 	check(not s2.is_active and s2.position.x == s2.start_origin.x, "пила стоит вне забега")
 
+	# Новые предметы подтверждает сервер; в следующем раунде они снова на месте.
+	g._clear_blocks()
+	g._spawn_block(50, 7, "stopwatch", Vector2i(25, 6), 0)
+	g._spawn_block(51, 7, "jetpack", Vector2i(30, 6), 0)
+	var time_scale := Engine.time_scale
+	_run_phase()
+	g._on_coin_taken(50, 2)
+	check(is_equal_approx(Engine.time_scale, time_scale * 0.5) and not g.inventory_pickups[50].visible,
+		"секундомер замедляет мир у всех, в том числе при подборе другим игроком")
+	g._on_coin_taken(51, g.my_id)
+	check(g.player.jetpack_fuel > 0.0 and not g.inventory_pickups[51].visible, "ранец получил игрок, его модель спряталась")
+	_put(Vector2(600, 90))
+	g.player.set_physics_process(false)
+	g.player.on_ground = false
+	g.player.feed_input(0.0, true)
+	var fuel: float = g.player.jetpack_fuel
+	g.player.step(1.0 / 60.0)
+	check(g.player.jetpack_fuel < fuel and g.player.velocity.y < 0.0, "удержание прыжка в воздухе включает тягу")
+	g.player.set_physics_process(true)
+	_run_phase()
+	check(Engine.time_scale == time_scale and g.player.jetpack_fuel == 0.0 and g.inventory_pickups[50].visible
+		and g.inventory_pickups[51].visible, "секундомер и ранец сброшены к новому забегу")
+
+	g._clear_blocks()
+	g._spawn_block(52, 7, "ferris", Vector2i(38, 5), 0)
+	var wheel: FerrisWheel = g.ported.back()
+	var cabin := wheel.get_child(1) as AnimatableBody2D
+	var cabin_start := cabin.position
+	_run_phase()
+	await _frames(20)
+	check(cabin.position.distance_to(cabin_start) > 2.0 and is_zero_approx(cabin.rotation),
+		"кабина колеса перемещается и остаётся горизонтальной")
+
 	print("portedgametest: ", "OK" if failures == 0 else "%d FAIL" % failures)
 	get_tree().quit(1 if failures else 0)

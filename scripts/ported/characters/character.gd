@@ -73,6 +73,9 @@ static var all_characters: Array = []
 @export var suicide_time := 0.8               # сколько держать кнопку, чтобы покончить с собой
 @export var lo_gravity := false
 @export var active := false
+const JETPACK_FUEL_SECONDS := 0.75  # GUESS: суммарное время работы ранца за один подбор
+const JETPACK_THRUST := 1750.0      # GUESS
+var jetpack_fuel := 0.0
 var jump_scale := 1.0                         # множитель прыжка (правило «труп»)
 var gravity_scale := 1.0                      # множитель гравитации (правило «низкая гравитация»)
 
@@ -271,6 +274,12 @@ func step(delta: float) -> void:
 	if jump_up and velocity.y < -100.0:
 		velocity.y *= jump_cut
 
+	# Ранец тратит топливо только при удержании прыжка в воздухе.
+	if not locked and not is_ghost and jetpack_fuel > 0.0 and jump and not on_ground and velocity.y > -velocity_peak:
+		var burn := minf(jetpack_fuel, delta)
+		jetpack_fuel -= burn
+		velocity.y = maxf(velocity.y - JETPACK_THRUST * burn, -velocity_peak)
+
 	# движение с учётом платформы под ногами
 	velocity += character_inherited_motion
 	move_and_slide()
@@ -465,6 +474,7 @@ func respawn() -> void:
 
 
 func reset_variables() -> void:
+	jetpack_fuel = 0.0
 	velocity = Vector2.ZERO
 	on_ground = false
 	on_wall = false

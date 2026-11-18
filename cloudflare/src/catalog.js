@@ -81,7 +81,7 @@ export const BLOCKS = {
   hydrant: [1, 1],
   flipper: [2, 1],
   rotator: [3, 1],
-  lift: [2, 1],
+  lift: [1, 5],
   plant: [1, 1],
   plank2: [2, 1],
   plank4: [4, 1],
@@ -89,7 +89,7 @@ export const BLOCKS = {
   plank6: [6, 1],
   haybale: [3, 3],
   barrel: [2, 2],
-  stairs: [3, 3],
+  stairs: [4, 4],
   girder: [4, 4],
   stone_l: [3, 3],
   stone_s: [3, 2],
@@ -100,6 +100,20 @@ export const BLOCKS = {
   spikes3: [3, 1],
   ice2: [2, 1],
   ice1: [1, 1],
+  crate: [1, 1],
+  stopwatch: [1, 1],
+  jetpack: [1, 2],
+  jetpack_dispenser: [2, 3],
+  magnet: [3, 2],
+  swing_saw: [1, 1],
+  tennis: [2, 1],
+  paper_plane: [2, 3],
+  hover_platform: [3, 1],
+  one_way_gate: [1, 3],
+  smooth_gear: [2, 2],
+  ferris: [6, 6],
+  mover_diagonal: [1, 1],
+  mover_short: [2, 1],
   goal: [1, 2],
   sawslide: [3, 1],
   wind: [3, 3],
@@ -114,12 +128,21 @@ export const OFFER_DEFAULT = 4;
 export const OFFER_MAX_COPIES = 2;
 export const OFFER_GUARANTEED = ["nuke"];
 
-// Блоки, которых нет в инвентаре оригинала (скриншоты фазы строительства): их не предлагают в выборе (зеркало OFFER_EXCLUDED в catalog.gd).
-// Сами блоки остаются в BLOCKS: флаг ставит карта, а размеры нужны для проверки расстановки.
-export const OFFER_EXCLUDED = ["goal", "boulder", "wind", "toxic", "flamethrower", "crumble", "sawslide", "pillar"];
+// Предметы со страниц 2–4 инвентаря (зеркало в catalog.gd).
+// Остальные ID остаются известны для уже размещённых блоков и служебных объектов.
+export const OFFER_IDS = [
+  "plank6", "plank5", "plank4", "plank", "plank2", "crate", "stairs", "girder", "barrel", "haybale",
+  "honey", "coin", "stopwatch", "dynamite", "bomb", "nuke", "stone_l", "stone_s", "stone_sq", "stone_cube",
+  "lift",
+  "ice", "ice2", "ice1", "spikes3", "spikes", "spikes1", "pressure", "spikyball", "flipper", "sawrail",
+  "pendulum", "punch", "beehive", "magnet", "swing_saw", "flamethrower", "tennis", "cannon", "blackhole", "teleporter",
+  "hockey", "crossbow", "jetpack", "jetpack_dispenser", "plant",
+  "paper_plane", "spring", "hydrant", "upblower", "hover_platform", "one_way_gate", "smooth_gear", "autodoor", "ferris", "rotator",
+  "treadmill", "mover_diagonal", "mover", "mover_short",
+];
 
 export const BLOCK_IDS = Object.keys(BLOCKS);
-export const OFFER_IDS = BLOCK_IDS.filter((id) => !OFFER_EXCLUDED.includes(id));
+export const OFFER_EXCLUDED = BLOCK_IDS.filter((id) => !OFFER_IDS.includes(id));
 
 const key = (x, y) => x * 1000 + y;
 

@@ -26,6 +26,9 @@ var roofs_root: Node2D                # земля текущей карты
 var sky_root: Node2D                  # фон текущей карты
 var goal_area: Area2D                 # флаг текущей карты
 var level_map := 0                    # индекс построенной карты
+var inventory_pickups: Dictionary = {}
+var _slow_until := 0
+var _normal_time_scale := 1.0
 var coin_nodes: Dictionary = {}      # uid -> Area2D монеты (прячутся, когда подобраны)
 var my_coins := 0                    # сколько монет подобрано в этом забеге
 var block_defs: Dictionary = {}      # uid -> {owner, type, origin, rot}: что сейчас стоит на уровне (после взрывов — без снесённого)
@@ -226,9 +229,15 @@ func _build_goal() -> void:
 func _make_visual(type: String, color: Color, style := "block") -> Node2D:
 	var px := Vector2(Catalog.size_of(type)) * CELL
 	var kind: String = Catalog.BLOCKS[type].kind
-	var original := BlockArt.make(type, px, kind != "shooter")   # арбалет анимируется при выстреле
+	var original: Node2D
+	if kind != "flame" or style != "ghost":
+		original = BlockArt.make(type, px, kind != "shooter")
 	if original != null:
+		if type == "girder":
+			(original as AnimatedSprite2D).flip_h = true
 		return original
+	if kind in ["magnet", "ferris"]:
+		return Art.make_ported(kind, px, color)
 	if Catalog.BLOCKS[type].has("cells"):   # составная форма: каждая клетка рисуется своим куском
 		var shape := Node2D.new()
 		for c in Catalog.BLOCKS[type].cells:
@@ -333,6 +342,8 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			var door := AutoDoor.new()
 			door.interval = 2.0 + float(uid % 3) * 0.5
 			body.add_child(door)
+			if type == "one_way_gate":
+				door.pass_dir = dir.rotated(PI / 2.0)
 			door.setup_body(body, size)
 			logic = door
 			node = body
@@ -425,6 +436,7 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			var body := AnimatableBody2D.new()
 			_fill_body(body, rect, color, type, 0, rot)
 			var rb := RotateBlock.new()
+			rb.continuous = bool(info.get("continuous", false))
 			body.add_child(rb)
 			rb.setup_body(body)
 			logic = rb
@@ -464,12 +476,14 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			var body := AnimatableBody2D.new()
 			body.sync_to_physics = true
 			_fill_body(body, rect, color, type, 0, rot)
-			var plat: ActiveBlock = HorizontalMovingPlatform.new() if rot % 2 == 0 else MovingPlatform.new()
+			var plat: ActiveBlock = HorizontalMovingPlatform.new() if not info.has("move_angle") and rot % 2 == 0 else MovingPlatform.new()
 			plat.move_speed = 50.0
 			plat.max_distance = CELL * 6.0
 			plat.initial_moved = CELL * 3.0
 			plat.move_target = body
-			if rot % 2 == 1:
+			if info.has("move_angle"):
+				plat.move_angle = float(info.move_angle) + rot * 90.0
+			elif rot % 2 == 1:
 				plat.move_angle = 90.0
 			body.add_child(plat)
 			logic = plat
@@ -491,6 +505,16 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			node.add_child(spring)
 			spring.setup_zone(size)
 			logic = spring
+		"pickup":
+			node = Node2D.new()
+			node.position = center
+			var pickup := InventoryPickup.new()
+			pickup.add_child(_rotated(_make_visual(type, color), rot))
+			pickup.touched.connect(_on_pickup_touched.bind(uid))
+			node.add_child(pickup)
+			pickup.setup_zone(size)
+			inventory_pickups[uid] = pickup
+			logic = pickup
 		"coin":
 			node = Node2D.new()
 			node.position = center
@@ -556,9 +580,23 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			node.rotation = dir.angle() - PI / 2.0
 			var pivot := Node2D.new()
 			var arm_px: float = float(info.arm) * CELL
-			pivot.add_child(Art.make_ported("axearm", Vector2(CELL, arm_px), color))
+			var chain := BlockArt.make("wrecking_chain", Vector2(CELL, arm_px + CELL)) if type == "pendulum" else null
+			if chain != null:
+				chain.position.y = arm_px / 2.0
+				pivot.add_child(chain)
+			else:
+				pivot.add_child(Art.make_ported("axearm", Vector2(CELL, arm_px), color))
+				if type == "swing_saw":
+					var blade := BlockArt.make("swing_saw", Vector2.ONE * CELL)
+					if blade == null:
+						blade = Art.make_ported("sawblade", Vector2.ONE * CELL, color)
+					blade.position.y = arm_px
+					pivot.add_child(blade)
 			node.add_child(pivot)
-			node.add_child(Art.make_trap(type, size, color, 0.0, 0.0))
+			var mount := BlockArt.make("pendulum", size) if type == "pendulum" else null
+			if mount == null:
+				mount = Art.make_trap("pendulum", size, color, 0.0, 0.0)
+			node.add_child(mount)
 			var axe := SwingingAxe.new()
 			axe.rotate_locked = pivot
 			axe.axe_length = arm_px
@@ -578,6 +616,8 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			launcher.shoot_dir = dir
 			launcher.first_shot_delay = float(info.first)
 			launcher.interval = float(info.period)
+			launcher.projectile_speed = float(info.speed)
+			launcher.projectile_art = str(info.get("projectile", "crossbow_arrow"))
 			launcher.muzzle_offset = (size.y / 2.0 if dir.x == 0.0 else size.x / 2.0) + 4.0
 			node.add_child(launcher)
 			logic = launcher
@@ -618,6 +658,23 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 			var zs := Vector2(CELL * 2.0, CELL * 5.0) if dir.x == 0.0 else Vector2(CELL * 5.0, CELL * 2.0)
 			blower.setup_zone(zs, dir * (CELL / 2.0 + CELL * 2.5))
 			logic = blower
+		"magnet":
+			node = Node2D.new()
+			node.position = center
+			node.add_child(_rotated(_make_visual(type, color), rot))
+			var magnet := AttractorRepulsor.new()
+			magnet.repels = rot >= 2
+			node.add_child(magnet)
+			magnet.setup_zone(Vector2.ONE * magnet.radius * 2.0)
+			logic = magnet
+		"ferris":
+			node = Node2D.new()
+			node.position = center
+			var wheel := FerrisWheel.new()
+			wheel.clockwise = rot < 2
+			node.add_child(wheel)
+			wheel.setup_wheel(size, rot)
+			logic = wheel
 		"boulder":          # валун: срывается, когда игрок оказывается впереди, и катится
 			node = Node2D.new()
 			node.position = center
@@ -711,6 +768,7 @@ func _destroy_block(uid: int) -> void:
 	var node = block_nodes.get(uid)
 	block_nodes.erase(uid)
 	coin_nodes.erase(uid)
+	inventory_pickups.erase(uid)
 	block_defs.erase(uid)
 	if is_instance_valid(node):
 		node.queue_free()    # вместе с блоком исчезают его стрелы и пламя
@@ -748,6 +806,7 @@ func _clear_blocks() -> void:
 			block_nodes[uid].queue_free()
 	block_nodes.clear()
 	coin_nodes.clear()
+	inventory_pickups.clear()
 	ported.clear()
 	block_defs.clear()
 	occupied = Catalog.static_occupied(level_map)
@@ -959,6 +1018,7 @@ func _set_touch(on: bool) -> void:
 # ======================================================================
 
 func on_phase(p: int, data: Dictionary) -> void:
+	_end_slow_motion()
 	phase = p
 	grid.visible = p == Catalog.Phase.PLACE
 	_hide_panels()
@@ -1272,9 +1332,41 @@ func _reset_coins() -> void:
 
 
 func _on_coin_taken(uid: int, player_id: int) -> void:
+	var pickup := inventory_pickups.get(uid) as InventoryPickup
+	if is_instance_valid(pickup):
+		if pickup.visible and phase == Catalog.Phase.RUN:
+			pickup.confirm()
+			Audio.play("coin_pickup")
+			if block_defs[uid].type == "stopwatch":
+				_start_slow_motion()
+			elif player_id == my_id and my_state == "alive":
+				player.jetpack_fuel = Character.JETPACK_FUEL_SECONDS
+		return
 	# свою монету не прячем — она летит за игроком; чужую берёт сервер, у всех остальных она пропадает
 	if player_id != my_id and coin_nodes.has(uid) and is_instance_valid(coin_nodes[uid]):
 		coin_nodes[uid].visible = false
+
+
+func _on_pickup_touched(chr: Character, uid: int) -> void:
+	if chr == player and phase == Catalog.Phase.RUN and my_state == "alive":
+		Net.send_coin(uid)
+
+
+func _start_slow_motion() -> void:
+	if _slow_until == 0:
+		_normal_time_scale = Engine.time_scale
+		Engine.time_scale *= 0.5    # Скорость секундомера из Stopwatch.cs.
+	_slow_until = Time.get_ticks_msec() + 3500    # GUESS: длительность в реальных мс
+
+
+func _end_slow_motion() -> void:
+	if _slow_until != 0:
+		Engine.time_scale = _normal_time_scale
+		_slow_until = 0
+
+
+func _exit_tree() -> void:
+	_end_slow_motion()
 
 
 func _on_coin_picked(_chr: Character, uid: int) -> void:
@@ -1375,6 +1467,8 @@ func _update_camera(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	if _slow_until != 0 and (phase != Catalog.Phase.RUN or Time.get_ticks_msec() >= _slow_until):
+		_end_slow_motion()
 	_update_camera(delta)
 	if sprint_btn:
 		sprint_btn.modulate = Color(0.55, 1.0, 0.55, 1.0) if player.sprint_on else Color.WHITE

@@ -13,7 +13,7 @@ func check(cond: bool, what: String) -> void:
 
 func _ready() -> void:
 	# клетки формы: лестница не поворачивается в дырку, а все повороты остаются внутри габарита
-	check(Catalog.cells_of("stairs", 0).size() == 3, "у лестницы три клетки")
+	check(Catalog.cells_of("stairs", 0).size() == 4, "у лестницы четыре ступени")
 	check(Catalog.cells_of("plank", 0) == [Rect2i(0, 0, 3, 1)], "у обычного блока одна клетка на весь размер")
 	for t in Catalog.BLOCKS:
 		for rot in 4:
@@ -27,7 +27,7 @@ func _ready() -> void:
 				base += c.size.x * c.size.y
 			check(area == base, "%s rot %d: площадь формы сохраняется" % [t, rot])
 	# лестница поднимается вправо: ступень внизу слева, верх справа; после поворота на 90° — другая сторона
-	check(Catalog.cells_of("stairs", 1).size() == 3, "поворот лестницы считается")
+	check(Catalog.cells_of("stairs", 1).size() == 4, "поворот лестницы считается")
 
 	var g: Node2D = load("res://scripts/game.gd").new()
 	add_child(g)

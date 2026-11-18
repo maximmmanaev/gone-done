@@ -74,20 +74,29 @@ const PLAYER_COLORS := [
 # (0 — вверх, 1 — вправо, 2 — вниз, 3 — влево), убивает того, кого коснётся; очки за такую смерть получает хозяин ловушки.
 # Логику всех этих блоков ведут классы из scripts/ported; PORTED_ART — те, чьи картинки рисует Art.PortedDraw (остальные — старые рисунки).
 const PORTED_KINDS := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter", "treadmill", "upblower", "boulder", "blackhole",
-	"goal", "sawslide", "sawspin", "spring", "coin", "mover", "shooter", "flame", "pendulum", "crumble", "autodoor", "punch", "hockey", "cannon", "beehive", "pressure", "hydrant", "flipper", "rotator", "lift", "plant"]
+	"goal", "sawslide", "sawspin", "spring", "coin", "mover", "shooter", "flame", "pendulum", "crumble", "autodoor", "punch", "hockey", "cannon", "beehive", "pressure", "hydrant", "flipper", "rotator", "lift", "plant", "pickup", "magnet", "ferris"]
 const PORTED_ART := ["ice", "honey", "toxic", "sawrail", "wind", "teleporter", "treadmill", "upblower", "boulder", "blackhole", "goal", "sawslide"]
 
-# Блоки, которых нет в инвентаре оригинала: в выборе их не предлагают (зеркало OFFER_EXCLUDED в cloudflare/src/catalog.js).
-const OFFER_EXCLUDED := ["goal", "boulder", "wind", "toxic", "flamethrower", "crumble", "sawslide", "pillar"]
+# Предметы со страниц 2–4 инвентаря. Зеркало OFFER_IDS в cloudflare/src/catalog.js.
+const OFFER_IDS := [
+	"plank6", "plank5", "plank4", "plank", "plank2", "crate", "stairs", "girder", "barrel", "haybale",
+	"honey", "coin", "stopwatch", "dynamite", "bomb", "nuke", "stone_l", "stone_s", "stone_sq", "stone_cube",
+	"lift",
+	"ice", "ice2", "ice1", "spikes3", "spikes", "spikes1", "pressure", "spikyball", "flipper", "sawrail",
+	"pendulum", "punch", "beehive", "magnet", "swing_saw", "flamethrower", "tennis", "cannon", "blackhole", "teleporter",
+	"hockey", "crossbow", "jetpack", "jetpack_dispenser", "plant",
+	"paper_plane", "spring", "hydrant", "upblower", "hover_platform", "one_way_gate", "smooth_gear", "autodoor", "ferris", "rotator",
+	"treadmill", "mover_diagonal", "mover", "mover_short",
+]
 
 const BLOCKS := {
 	"plank":  {"name": "Щепка",     "size": Vector2i(3, 1), "kind": "solid",  "color": Color(0.78, 0.59, 0.31)},
 	"box":    {"name": "Коробок",   "size": Vector2i(2, 2), "kind": "solid",  "color": Color(0.80, 0.55, 0.33)},
 	"pillar": {"name": "Карандаш",  "size": Vector2i(1, 3), "kind": "solid",  "color": Color(0.95, 0.78, 0.25)},
-	"spikes": {"name": "Чертополох","size": Vector2i(2, 1), "kind": "hazard", "color": Color(0.60, 0.25, 0.66)},
+	"spikes": {"name": "Колючая проволока","size": Vector2i(2, 1), "kind": "hazard", "color": Color(0.60, 0.25, 0.66)},
 	"saw":    {"name": "Шестерёнка","size": Vector2i(2, 2), "kind": "sawspin", "color": Color(0.80, 0.45, 0.15)},
 	"spring": {"name": "Пружинка",  "size": Vector2i(1, 1), "kind": "spring", "color": Color(0.25, 0.72, 0.68)},
-	"mover":  {"name": "Листок",    "size": Vector2i(3, 1), "kind": "mover",  "color": Color(0.52, 0.74, 0.30)},
+	"mover":  {"name": "Движущаяся платформа",    "size": Vector2i(3, 1), "kind": "mover",  "color": Color(0.52, 0.74, 0.30)},
 	"dynamite": {"name": "Динамит", "size": Vector2i(1, 1), "kind": "bomb", "color": Color(0.85, 0.22, 0.18)},
 	"bomb":   {"name": "Бомба",     "size": Vector2i(2, 2), "kind": "bomb",   "color": Color(0.20, 0.20, 0.26)},
 	"nuke":   {"name": "Ядерная бомба", "size": Vector2i(3, 3), "kind": "bomb", "color": Color(0.93, 0.78, 0.15)},
@@ -96,7 +105,7 @@ const BLOCKS := {
 	"flamethrower": {"name": "Огнемёт", "size": Vector2i(1, 1), "kind": "flame", "color": Color(0.45, 0.45, 0.52),
 		"range": 3, "on": 1.2, "period": 3.4},
 	"coin":   {"name": "Монета",    "size": Vector2i(1, 1), "kind": "coin",   "color": Color(0.98, 0.80, 0.20)},
-	"pendulum": {"name": "Маятник", "size": Vector2i(1, 1), "kind": "pendulum", "color": Color(0.55, 0.55, 0.60),
+	"pendulum": {"name": "Груз на цепи", "size": Vector2i(1, 1), "kind": "pendulum", "color": Color(0.55, 0.55, 0.60),
 		"arm": 2.5, "swing": 70.0, "freq": 1.8},
 	# Блоки из scripts/ported (логика — Placeable и наследники): ice/honey — платформы с особой поверхностью,
 	# toxic/sawrail/axe — убивают (очки получает хозяин), wind — дует в сторону поворота.
@@ -119,7 +128,7 @@ const BLOCKS := {
 	"hydrant": {"name": "Гидрант", "size": Vector2i(1, 1), "kind": "hydrant", "color": Color(0.85, 0.20, 0.20)},
 	"flipper": {"name": "Переворотник", "size": Vector2i(2, 1), "kind": "flipper", "color": Color(0.45, 0.62, 0.78)},
 	"rotator": {"name": "Вертушка", "size": Vector2i(3, 1), "kind": "rotator", "color": Color(0.70, 0.50, 0.30)},
-	"lift":   {"name": "Подъёмник", "size": Vector2i(2, 1), "kind": "lift", "color": Color(0.55, 0.45, 0.35)},
+	"lift":   {"name": "Подъёмник", "size": Vector2i(1, 5), "kind": "lift", "color": Color(0.55, 0.45, 0.35)},
 	"plant":  {"name": "Цветок-боец", "size": Vector2i(1, 1), "kind": "plant", "color": Color(0.85, 0.40, 0.70)},
 	# Предметы инвентаря оригинала. Составные («cells» — клетки формы относительно угла блока) занимают на сетке и на сервере весь прямоугольник,
 	# а твёрдыми и рисуются только своими клетками. Размеры на глаз по скриншотам инвентаря (GUESS).
@@ -129,8 +138,8 @@ const BLOCKS := {
 	"plank6": {"name": "Щепка 6", "size": Vector2i(6, 1), "kind": "solid", "color": Color(0.68, 0.48, 0.30)},
 	"haybale": {"name": "Сено", "size": Vector2i(3, 3), "kind": "solid", "color": Color(0.95, 0.85, 0.20)},
 	"barrel": {"name": "Бочка", "size": Vector2i(2, 2), "kind": "solid", "color": Color(0.35, 0.45, 0.55)},
-	"stairs": {"name": "Лестница", "size": Vector2i(3, 3), "kind": "solid", "color": Color(0.80, 0.60, 0.35),
-		"cells": [Rect2i(0, 2, 3, 1), Rect2i(1, 1, 2, 1), Rect2i(2, 0, 1, 1)]},
+	"stairs": {"name": "Лестница", "size": Vector2i(4, 4), "kind": "solid", "color": Color(0.80, 0.60, 0.35),
+		"cells": [Rect2i(0, 3, 4, 1), Rect2i(1, 2, 3, 1), Rect2i(2, 1, 2, 1), Rect2i(3, 0, 1, 1)]},
 	"girder": {"name": "Балка", "size": Vector2i(4, 4), "kind": "solid", "color": Color(0.60, 0.60, 0.64),
 		"cells": [Rect2i(0, 0, 4, 1), Rect2i(3, 1, 1, 3)]},
 	"stone_l": {"name": "Камень Г", "size": Vector2i(3, 3), "kind": "solid", "color": Color(0.68, 0.68, 0.70),
@@ -144,6 +153,21 @@ const BLOCKS := {
 	"spikes3": {"name": "Колючка 3", "size": Vector2i(3, 1), "kind": "hazard", "color": Color(0.60, 0.25, 0.66)},
 	"ice2":   {"name": "Лёд 2",     "size": Vector2i(2, 1), "kind": "ice",    "color": Color(0.62, 0.86, 0.96)},
 	"ice1":   {"name": "Лёд 1",     "size": Vector2i(1, 1), "kind": "ice",    "color": Color(0.62, 0.86, 0.96)},
+	# GUESS: размеры и темп восстановленных предметов подобраны по скриншотам.
+	"crate": {"name": "Ящик", "size": Vector2i(1, 1), "kind": "solid", "color": Color("#a87347")},
+	"stopwatch": {"name": "Секундомер", "size": Vector2i(1, 1), "kind": "pickup", "color": Color("#f1bb3e")},
+	"jetpack": {"name": "Реактивный ранец", "size": Vector2i(1, 2), "kind": "pickup", "color": Color("#eab987")},
+	"jetpack_dispenser": {"name": "Раздатчик ранцев", "size": Vector2i(2, 3), "kind": "pickup", "color": Color("#cf5658")},
+	"magnet": {"name": "Магнит", "size": Vector2i(3, 2), "kind": "magnet", "color": Color("#bf594b")},
+	"swing_saw": {"name": "Качающаяся пила", "size": Vector2i(1, 1), "kind": "pendulum", "color": Color("#9a9ba5"), "arm": 3.0, "swing": 60.0, "freq": 1.8},
+	"tennis": {"name": "Теннисная пушка", "size": Vector2i(2, 1), "kind": "shooter", "color": Color("#85bdd2"), "first": 1.0, "period": 2.6, "speed": 205.0, "projectile": "tennis_ball"},
+	"paper_plane": {"name": "Робот с самолётиками", "size": Vector2i(2, 3), "kind": "shooter", "color": Color("#d4b35d"), "first": 1.5, "period": 3.0, "speed": 150.0, "projectile": "paper_plane_shot"},
+	"hover_platform": {"name": "Платформа с пропеллером", "size": Vector2i(3, 1), "kind": "mover", "color": Color("#927f70"), "move_angle": -90.0},
+	"one_way_gate": {"name": "Односторонний шлагбаум", "size": Vector2i(1, 3), "kind": "autodoor", "color": Color("#878571")},
+	"smooth_gear": {"name": "Вращающаяся шестерёнка", "size": Vector2i(2, 2), "kind": "rotator", "color": Color("#a1a29b"), "continuous": true},
+	"ferris": {"name": "Колесо с платформами", "size": Vector2i(6, 6), "kind": "ferris", "color": Color("#7f8495")},
+	"mover_diagonal": {"name": "Диагональная платформа", "size": Vector2i(1, 1), "kind": "mover", "color": Color("#dc8c40"), "move_angle": -45.0},
+	"mover_short": {"name": "Короткая движущаяся платформа", "size": Vector2i(2, 1), "kind": "mover", "color": Color("#9862bb")},
 	"goal":   {"name": "Флаг",      "size": Vector2i(1, 2), "kind": "goal",   "color": Color(0.85, 0.20, 0.20)},
 	"sawslide": {"name": "Пила-бегунок", "size": Vector2i(3, 1), "kind": "sawslide", "color": Color(0.72, 0.72, 0.78)},
 	"wind":   {"name": "Ветер",     "size": Vector2i(3, 3), "kind": "wind",   "color": Color(0.70, 0.88, 0.95)},
