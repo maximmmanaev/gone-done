@@ -29,26 +29,65 @@ for i in range(n // 12):
     wid, off, ln = struct.unpack("<III", d[o + i * 12:o + i * 12 + 12])
     wems[wid] = d[data_off + off:data_off + off + ln]
 
-tmp = tempfile.mkdtemp(prefix="wem_")
-for wid, blob in wems.items():
-    open(os.path.join(tmp, f"{wid}.wem"), "wb").write(blob)
+def ogg_path(wid: int) -> str:
+    return os.path.join(OUT, f"{wid}.ogg")
 
-# vgmstream → wav → ogg, параллельно
-def convert(wid: int) -> None:
-    ogg = os.path.join(OUT, f"{wid}.ogg")
-    if os.path.exists(ogg):
-        return
+
+def has_audio(wid: int) -> bool:
+    path = ogg_path(wid)
+    return os.path.isfile(path) and os.path.getsize(path) > 0
+
+
+# Встроенный Vorbis-кодировщик FFmpeg принимает только стерео.
+encoders = subprocess.check_output(["ffmpeg", "-hide_banner", "-encoders"], text=True)
+codec_args = ["-c:a", "libvorbis"] if "libvorbis" in encoders else ["-ac", "2", "-c:a", "vorbis", "-strict", "-2"]
+
+
+def convert(wid: int, tmp: str) -> bool:
+    if has_audio(wid):
+        return True
+    wem = os.path.join(tmp, f"{wid}.wem")
     wav = os.path.join(tmp, f"{wid}.wav")
-    r = subprocess.run(["vgmstream-cli", "-o", wav, os.path.join(tmp, f"{wid}.wem")], capture_output=True)
-    if r.returncode == 0:
-        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", wav, "-c:a", "vorbis", "-strict", "-2",
-                        "-q:a", "4", ogg])
-    if os.path.exists(wav):
-        os.remove(wav)
+    with open(wem, "wb") as f:
+        f.write(wems[wid])
+    fd, encoded = tempfile.mkstemp(prefix=f".{wid}.", suffix=".tmp", dir=OUT)
+    os.close(fd)
+    try:
+        decoded = subprocess.run(["vgmstream-cli", "-o", wav, wem], capture_output=True)
+        if decoded.returncode != 0:
+            return False
+        result = subprocess.run(
+            ["ffmpeg", "-nostdin", "-loglevel", "error", "-y", "-i", wav, *codec_args,
+             "-q:a", "4", "-f", "ogg", encoded],
+            capture_output=True,
+        )
+        if result.returncode != 0 or os.path.getsize(encoded) == 0:
+            return False
+        os.replace(encoded, ogg_path(wid))
+        return True
+    finally:
+        for path in (wem, wav, encoded):
+            if os.path.exists(path):
+                os.remove(path)
 
 
-with ThreadPoolExecutor(8) as ex:
-    list(ex.map(convert, wems))
+with tempfile.TemporaryDirectory(prefix="wem_") as tmp, ThreadPoolExecutor(8) as ex:
+    converted = sum(ex.map(lambda wid: convert(wid, tmp), wems))
+if converted != len(wems):
+    print(f"Предупреждение: не удалось преобразовать {len(wems) - converted} WEM", file=sys.stderr)
+
+# Godot запоминает неудачный импорт в .import и сам не повторяет его.
+for wid in wems:
+    if not has_audio(wid):
+        continue
+    sidecar = ogg_path(wid) + ".import"
+    try:
+        with open(sidecar, encoding="utf-8") as f:
+            failed_import = re.search(r"^valid=false$", f.read(), re.M)
+        if failed_import:
+            os.remove(sidecar)
+    except FileNotFoundError:
+        pass
 
 # --- HIRC: событие → действия → узлы → звуки ---
 o, n = secs[b"HIRC"]
@@ -97,7 +136,7 @@ for oid, (t, b) in objs.items():
         act = objs.get(struct.unpack("<I", b[5 + i * 4:9 + i * 4])[0])
         if act and struct.unpack("<H", act[1][4:6])[0] >> 8 == 4:  # Play
             wl += sounds_under(struct.unpack("<I", act[1][6:10])[0])
-    wl = [w for w in dict.fromkeys(wl) if os.path.exists(os.path.join(OUT, f"{w}.ogg"))]
+    wl = [w for w in dict.fromkeys(wl) if has_audio(w)]
     if wl:
         events[oid] = wl
 
@@ -143,4 +182,4 @@ for eid, wl in events.items():
     out[cands.get(eid, f"ev_{eid:08x}")] = wl
 json.dump(out, open(os.path.join(OUT, "events.json"), "w"), indent=0)
 named = sum(1 for k in out if not k.startswith("ev_"))
-print(f"wems={len(wems)} ogg={len([x for x in os.listdir(OUT) if x.endswith('.ogg')])} events={len(out)} named={named}")
+print(f"wems={len(wems)} ogg={converted} events={len(out)} named={named}")

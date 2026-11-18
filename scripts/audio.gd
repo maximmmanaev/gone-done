@@ -37,13 +37,28 @@ func play(event: String, _pos := Vector2.ZERO) -> void:
 	var ids: Array = _events[event]
 	if ids.is_empty():
 		return
-	var path := "res://assets/audio/%d.ogg" % int(ids[randi() % ids.size()])
-	if not _cache.has(path):
-		_cache[path] = load(path) if ResourceLoader.exists(path) else null
-	var stream: AudioStream = _cache[path]
-	if stream == null:
+	# Начинаем со случайного варианта и ищем следующий, если файла нет в сборке.
+	var first := randi_range(0, ids.size() - 1)
+	for offset in ids.size():
+		var path := "res://assets/audio/%d.ogg" % int(ids[(first + offset) % ids.size()])
+		if not _cache.has(path):
+			_cache[path] = _load_stream(path)
+		var stream: AudioStream = _cache[path]
+		if stream == null:
+			continue
+		var p := _pool[_next]
+		_next = (_next + 1) % POOL_SIZE
+		p.stream = stream
+		p.play()
 		return
-	var p := _pool[_next]
-	_next = (_next + 1) % POOL_SIZE
-	p.stream = stream
-	p.play()
+
+
+func _load_stream(path: String) -> AudioStream:
+	if not ResourceLoader.exists(path):
+		return null
+	# Старые выгрузки могли оставлять пустые OGG. В экспортированном паке
+	# исходного файла может не быть: ResourceLoader читает импортированную копию.
+	var source := FileAccess.open(path, FileAccess.READ)
+	if source != null and source.get_length() == 0:
+		return null
+	return load(path)
