@@ -42,11 +42,18 @@ func shoot_projectile_0() -> void:  # C# ShootProjectile
 	arrow.launched_from = self
 	arrow.position = position + shoot_dir * muzzle_offset
 	arrow.rotation = shoot_dir.angle() + PI / 2.0
-	arrow.add_child(Art.make_arrow())
-	arrow.get_child(arrow.get_child_count() - 1).scale = Vector2.ONE * Catalog.K
+	var vis := BlockArt.make("crossbow_arrow", Vector2.ONE * Catalog.CELL)
+	if vis == null:
+		vis = Art.make_arrow()
+		vis.scale = Vector2.ONE * Catalog.K
+	arrow.add_child(vis)
 	get_parent().add_child(arrow)
 	shots.append(arrow)
+	if is_instance_valid(shot_sprite):
+		shot_sprite.stop()
+		shot_sprite.play("default")
 
+var shot_sprite: AnimatedSprite2D
 var shoot_dir := Vector2.RIGHT
 var muzzle_offset := 12.0
 var shots: Array = []
@@ -55,6 +62,8 @@ var _last_index := -1
 
 func reset_play_state() -> void:
 	_last_index = -1
+	if is_instance_valid(shot_sprite):
+		shot_sprite.stop()
 	for s in shots:
 		if is_instance_valid(s):
 			s.queue_free()

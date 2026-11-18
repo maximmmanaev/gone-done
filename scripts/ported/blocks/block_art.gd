@@ -15,6 +15,8 @@ const MAP := {
 	"boulder": ["Boulder", false],
 	"box": ["Box-CardboardBox", false],
 	"spikes": ["barbwire_2_", true],
+	"crossbow": ["AS2-ArrowShooter", false],
+	"crossbow_arrow": ["AS2-Arrow", false],
 	"teleporter": ["Teleporter-Tele_On", false],
 	"treadmill": ["TreadMill", true],
 	"blackhole": ["blackhole-MainSwhirl", false],
@@ -64,12 +66,13 @@ static func has(type: String) -> bool:
 	return MAP.has(type) and _sprites.has(MAP[type][0])
 
 
-static func make(type: String, px: Vector2) -> Node2D:
+static func make(type: String, px: Vector2, autoplay := true) -> Node2D:
 	if not has(type):
 		return null
 	var spec: Array = MAP[type]
 	var sf := SpriteFrames.new()
 	sf.set_animation_speed("default", FPS)
+	sf.set_animation_loop("default", autoplay)
 	var first := Vector2.ZERO   # масштаб считаем по первому кадру: размеры кадров в группе бывают разные
 	for p in _sprites[spec[0]]:
 		if not ResourceLoader.exists(p):
@@ -86,5 +89,6 @@ static func make(type: String, px: Vector2) -> Node2D:
 		sp.scale = px / first
 	else:
 		sp.scale = Vector2.ONE * minf(px.x / first.x, px.y / first.y)
-	sp.play("default")
+	if autoplay:
+		sp.play("default")
 	return sp

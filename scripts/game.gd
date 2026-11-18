@@ -216,7 +216,7 @@ func _build_goal() -> void:
 func _make_visual(type: String, color: Color, style := "block") -> Node2D:
 	var px := Vector2(Catalog.size_of(type)) * CELL
 	var kind: String = Catalog.BLOCKS[type].kind
-	var original := BlockArt.make(type, px)   # оригинальный спрайт; нет такого — рисуем кодом ниже
+	var original := BlockArt.make(type, px, kind != "shooter")   # арбалет анимируется при выстреле
 	if original != null:
 		return original
 	if Catalog.BLOCKS[type].has("cells"):   # составная форма: каждая клетка рисуется своим куском
@@ -561,8 +561,10 @@ func _spawn_ported(uid: int, type: String, kind: String, rect: Rect2i, rot: int,
 		"shooter":          # арбалет
 			node = Node2D.new()
 			node.position = center
-			node.add_child(_rotated(_make_visual(type, color), rot))
+			var vis := _make_visual(type, color)
+			node.add_child(_rotated(vis, rot))
 			var launcher := ProjectileLauncher.new()
+			launcher.shot_sprite = vis as AnimatedSprite2D
 			launcher.shoot_dir = dir
 			launcher.first_shot_delay = float(info.first)
 			launcher.interval = float(info.period)
