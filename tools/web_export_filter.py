@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Прописывает в export_presets.cfg (пресет Web) exclude_filter: из ассетов оригинала в веб-сборку идут только
-используемые игрой спрайты (7 скинов из picker + блоки из BlockArt.MAP) и звуки прыжка и приземления.
+используемые игрой спрайты (7 скинов из picker + блоки из BlockArt.MAP) и звуки прыжка, приземления и музыка.
 
   python3 -I tools/web_export_filter.py [--check]
 """
@@ -47,16 +47,19 @@ def build_excludes() -> list:
         manifest = json.load(f)
     with open(os.path.join(ROOT, "assets/audio/events.json"), encoding="utf-8") as f:
         events = json.load(f)
+    with open(os.path.join(ROOT, "assets/audio_cues.json"), encoding="utf-8") as f:
+        music = json.load(f)["music"]
     movement_sounds = {
         f"{wid}.ogg"
         for event, ids in events.items()
         if event.startswith("SFX_") and event.endswith(("_Jump", "_Land"))
         for wid in ids
     }
+    keep_audio = movement_sounds | {f"{cue['source']}.ogg" for cue in music.values()}
     return (
         STATIC
         + unused_files("sprites", ".png", used_sprite_files(manifest))
-        + unused_files("audio", ".ogg", movement_sounds)
+        + unused_files("audio", ".ogg", keep_audio)
     )
 
 

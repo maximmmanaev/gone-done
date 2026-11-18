@@ -58,6 +58,9 @@ func _ready() -> void:
 	# в game.gd) их никогда не получала. Кнопки и поля меню от этого не страдают.
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_menu()
+	if not OS.has_feature("web"):
+		Audio.play_music("menu")
+		set_process_input(false)
 	Net.connection_failed.connect(func(): _fail("Не удалось подключиться к серверу"))
 	Net.server_lost.connect(_on_server_lost)
 	Net.room_error.connect(_on_room_error)
@@ -67,6 +70,14 @@ func _ready() -> void:
 	Net.phase_changed.connect(_on_phase)
 	if code_edit.text.length() == 4:   # код подставлен ссылкой ?code=… — сразу скрываем занятые скины
 		_on_code_changed(code_edit.text)
+
+
+
+func _input(event: InputEvent) -> void:
+	# Браузер разрешает включить звук после первого действия игрока.
+	if event.is_pressed():
+		Audio.play_music("menu")
+		set_process_input(false)
 
 
 # ======================================================================
@@ -483,6 +494,7 @@ func _on_phase(phase: int, data: Dictionary) -> void:
 		game = GameScript.new()
 		add_child(game)
 		game.leave_requested.connect(_leave)
+		Audio.play_music("match")
 		menu_box.hide()
 		room_box.hide()
 		menu_root.hide()
@@ -494,6 +506,7 @@ func _on_phase(phase: int, data: Dictionary) -> void:
 func _free_game() -> void:
 	if game != null:
 		game.queue_free()
+		Audio.play_music("menu")
 		game = null
 		bg_rect.show()
 		menu_root.show()

@@ -1,0 +1,7 @@
+{
+  "music": {
+    "menu": { "source": 1020583303, "loop": true },
+    "match": { "source": 627380408, "loop": true },
+    "victory": { "source": 1027245590, "loop": false }
+  }
+}

@@ -1138,6 +1138,7 @@ func _on_round_finished(result: Dictionary, msg: String, reset_blocks: bool) -> 
 
 
 func _on_game_finished(winner_id: int) -> void:
+	Audio.play_music("victory")
 	phase = Catalog.Phase.OVER
 	center_label.text = "Победитель: %s!" % _name_of(winner_id)
 	if Net.my_id == Net.host_id:
